@@ -45,20 +45,26 @@ class ModelComparisonApp {
 
     // Load available models from backend or fallback to appsettings
     async loadAvailableModels() {
+        console.log('DEBUG: loadAvailableModels started');
         try {
-            // Use HTTPS port 7047 for API calls to avoid redirect issues
-            const response = await fetch('https://localhost:7047/api/models/available');
+            // Use the same protocol and port as the current page to avoid CORS issues
+            const baseUrl = window.location.origin;
+            console.log(`DEBUG: Using base URL: ${baseUrl}`);
+            
+            const response = await fetch(`${baseUrl}/api/models/available`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
+            console.log('DEBUG: API response data:', data);
+            
             this.availableModels = {
                 nanoGPT: data.nanoGPT.models || [],
                 openRouter: data.openRouter.models || []
             };
 
-            console.log('Loaded models from API:', this.availableModels);
+            console.log('DEBUG: Loaded models from API:', this.availableModels);
             this.displayAvailableModels();
 
         } catch (error) {
@@ -101,9 +107,15 @@ class ModelComparisonApp {
 
     // Display available models in separate collapsible sections
     displayAvailableModels() {
+        console.log('DEBUG: displayAvailableModels called');
+        console.log('DEBUG: Available models data:', this.availableModels);
+        
+        // Render both providers with correct internal names
         this.renderProviderModels('nanoGPT');
         this.renderProviderModels('openRouter');
         this.updateProviderCounts();
+        
+        console.log('DEBUG: Finished displaying available models');
     }
 
     // Render models for specific provider
@@ -111,10 +123,8 @@ class ModelComparisonApp {
         const models = this.availableModels[provider] || [];
 
         // Debug: Check what elements actually exist in the DOM
-        console.log(`DEBUG: Looking for ${provider}-models element`);
-        console.log(`DEBUG: All elements with ID containing '${provider}':`,
-            Array.from(document.querySelectorAll(`[id*="${provider}"]`)).map(el => el.id)
-        );
+        console.log(`DEBUG: renderProviderModels called with provider: ${provider}`);
+        console.log(`DEBUG: Available models for ${provider}:`, models);
 
         // The provider parameter should match the exact IDs in the HTML
         // Available models are stored as 'nanoGPT' and 'openRouter' but HTML uses 'nanogpt' and 'openrouter'
@@ -152,9 +162,17 @@ class ModelComparisonApp {
                 <div class="font-medium text-white">${model}</div>
                 <div class="text-xs text-slate-400 mt-1">${provider}</div>
             `;
-            modelCard.addEventListener('click', () => this.selectModel(model));
+            
+            // Add click event with proper logging
+            modelCard.addEventListener('click', () => {
+                console.log(`DEBUG: Model card clicked: ${model} from ${provider}`);
+                this.selectModel(model);
+            });
+            
             container.appendChild(modelCard);
         });
+        
+        console.log(`DEBUG: Rendered ${models.length} models for ${provider}`);
     }
 
     // Update provider counts
@@ -165,19 +183,34 @@ class ModelComparisonApp {
 
     // Toggle provider sections
     toggleProvider(provider) {
-        // Convert to HTML format for element IDs
-        const htmlProviderId = provider === 'nanoGPT' ? 'nanogpt' : 'openrouter';
+        console.log(`DEBUG: toggleProvider called with: ${provider}`);
+        
+        // The provider parameter from HTML onclick is already in the correct format
+        // No conversion needed since HTML uses 'nanogpt' and 'openrouter'
+        const content = document.getElementById(`${provider}-models`);
+        const arrow = document.getElementById(`${provider}-arrow`);
 
-        const content = document.getElementById(`${htmlProviderId}-models`);
-        const arrow = document.getElementById(`${htmlProviderId}-arrow`);
+        if (!content) {
+            console.error(`DEBUG: Content element not found for ${provider}-models`);
+            return;
+        }
+        
+        if (!arrow) {
+            console.error(`DEBUG: Arrow element not found for ${provider}-arrow`);
+            return;
+        }
+
+        console.log(`DEBUG: Toggling ${provider} - current classes:`, content.className);
 
         if (content.classList.contains('max-h-0')) {
             // Expand
+            console.log(`DEBUG: Expanding ${provider}`);
             content.classList.remove('max-h-0');
             content.classList.add('max-h-96');
             arrow.classList.add('rotate-180');
         } else {
             // Collapse
+            console.log(`DEBUG: Collapsing ${provider}`);
             content.classList.remove('max-h-96');
             content.classList.add('max-h-0');
             arrow.classList.remove('rotate-180');
@@ -566,8 +599,11 @@ class ModelComparisonApp {
 
             console.log('Starting comparison with models:', this.selectedModels);
 
-            // Use HTTPS port 7047 for API calls to avoid redirect issues
-            const response = await fetch('https://localhost:7047/api/comparison/execute', {
+            // Use the same protocol and port as the current page to avoid CORS issues
+            const baseUrl = window.location.origin;
+            console.log(`DEBUG: Using base URL for comparison: ${baseUrl}`);
+            
+            const response = await fetch(`${baseUrl}/api/comparison/execute`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

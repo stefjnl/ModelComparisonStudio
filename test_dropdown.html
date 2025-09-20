@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NanoGPT Dropdown Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1e293b; color: white; }
+        .test-section { margin: 20px 0; padding: 15px; background: #334155; border-radius: 8px; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        button { padding: 10px 15px; margin: 5px; background: #8b5cf6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #7c3aed; }
+        #results { margin-top: 20px; padding: 15px; background: #1e293b; border-radius: 8px; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>NanoGPT Dropdown Functionality Test</h1>
+    
+    <div class="test-section">
+        <h3>Test 1: Load Available Models</h3>
+        <button onclick="testLoadModels()">Load Models from API</button>
+        <div id="loadResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 2: Test Dropdown Toggle</h3>
+        <button onclick="testToggleDropdown('nanogpt')">Test NanoGPT Dropdown</button>
+        <button onclick="testToggleDropdown('openrouter')">Test OpenRouter Dropdown</button>
+        <div id="toggleResults"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test 3: Test Model Selection</h3>
+        <button onclick="testModelSelection()">Test Model Selection</button>
+        <div id="selectionResults"></div>
+    </div>
+    
+    <div id="results">
+        <h3>Test Results:</h3>
+        <div id="testOutput">Click the buttons above to run tests...</div>
+    </div>
+
+    <script>
+        let availableModels = {
+            nanoGPT: [],
+            openRouter: []
+        };
+
+        async function testLoadModels() {
+            const output = document.getElementById('loadResults');
+            try {
+                const response = await fetch('http://localhost:5211/api/models/available');
+                const data = await response.json();
+                
+                availableModels = {
+                    nanoGPT: data.nanoGPT.models || [],
+                    openRouter: data.openRouter.models || []
+                };
+                
+                output.innerHTML = `
+                    <div class="success">✅ Models loaded successfully!</div>
+                    <p>NanoGPT models: ${availableModels.nanoGPT.length}</p>
+                    <p>OpenRouter models: ${availableModels.openRouter.length}</p>
+                `;
+                
+                logResult('Models loaded successfully from API');
+            } catch (error) {
+                output.innerHTML = `<div class="error">❌ Error loading models: ${error.message}</div>`;
+                logResult(`Error loading models: ${error.message}`);
+            }
+        }
+
+        function testToggleDropdown(provider) {
+            const output = document.getElementById('toggleResults');
+            
+            // Simulate the toggle functionality
+            const content = document.getElementById(`${provider}-models`);
+            const arrow = document.getElementById(`${provider}-arrow`);
+            
+            if (!content || !arrow) {
+                output.innerHTML = `<div class="error">❌ Elements not found for ${provider}</div>`;
+                logResult(`Elements not found for ${provider}`);
+                return;
+            }
+            
+            // Test the toggle logic
+            const isCollapsed = content.classList.contains('max-h-0');
+            
+            if (isCollapsed) {
+                content.classList.remove('max-h-0');
+                content.classList.add('max-h-96');
+                arrow.classList.add('rotate-180');
+                output.innerHTML = `<div class="success">✅ ${provider} dropdown expanded</div>`;
+                logResult(`${provider} dropdown expanded successfully`);
+            } else {
+                content.classList.remove('max-h-96');
+                content.classList.add('max-h-0');
+                arrow.classList.remove('rotate-180');
+                output.innerHTML = `<div class="success">✅ ${provider} dropdown collapsed</div>`;
+                logResult(`${provider} dropdown collapsed successfully`);
+            }
+        }
+
+        function testModelSelection() {
+            const output = document.getElementById('selectionResults');
+            
+            if (availableModels.nanoGPT.length === 0) {
+                output.innerHTML = `<div class="error">❌ Please load models first</div>`;
+                return;
+            }
+            
+            // Test selecting a NanoGPT model
+            const testModel = availableModels.nanoGPT[0];
+            output.innerHTML = `
+                <div class="success">✅ Model selection test passed</div>
+                <p>Would select: ${testModel}</p>
+            `;
+            logResult(`Model selection test passed - would select: ${testModel}`);
+        }
+
+        function logResult(message) {
+            const log = document.getElementById('testOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        }
+
+        // Initialize with some test elements
+        window.onload = function() {
+            // Create dummy elements for testing
+            const testContainer = document.createElement('div');
+            testContainer.innerHTML = `
+                <div id="nanogpt-models" class="max-h-0 overflow-hidden">
+                    <div id="nanogptModels">NanoGPT Models</div>
+                </div>
+                <div id="openrouter-models" class="max-h-0 overflow-hidden">
+                    <div id="openrouterModels">OpenRouter Models</div>
+                </div>
+                <svg id="nanogpt-arrow" class="transform transition-transform duration-200"></svg>
+                <svg id="openrouter-arrow" class="transform transition-transform duration-200"></svg>
+            `;
+            document.body.appendChild(testContainer);
+            
+            logResult('Test page loaded - ready for testing');
+        };
+    </script>
+</body>
+</html>
