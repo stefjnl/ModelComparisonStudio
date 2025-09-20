@@ -1,0 +1,162 @@
+/* Custom styles for Model Comparison Studio */
+
+/* Smooth transitions */
+* {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Model pill styling */
+.model-pill {
+    @apply bg-purple-700 text-white px-3 py-1 rounded-full text-sm font-medium;
+    border: 2px solid transparent;
+}
+
+.model-pill:hover {
+    @apply bg-purple-600;
+}
+
+.model-pill.selected {
+    @apply bg-purple-500 border-purple-300;
+}
+
+.model-pill .remove-btn {
+    @apply ml-2 text-purple-200 hover:text-white cursor-pointer;
+    font-size: 0.8rem;
+}
+
+/* Loading animation */
+.loading {
+    @apply text-purple-400;
+    display: inline-block;
+}
+
+.loading::after {
+    content: '';
+    animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60%, 100% { content: '...'; }
+}
+
+/* Star rating styling */
+.star-rating {
+    @apply flex gap-1;
+}
+
+.star {
+    @apply text-gray-400 cursor-pointer;
+    font-size: 1.2rem;
+}
+
+.star:hover,
+.star.active {
+    @apply text-yellow-400;
+}
+
+/* Response panel enhancements */
+.response-content {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.response-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.response-content::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+}
+
+.response-content::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded;
+}
+
+.response-content::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+/* Button hover effects */
+button:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* Focus styles for accessibility */
+input:focus,
+textarea:focus,
+button:focus {
+    @apply outline-none ring-2 ring-purple-500 ring-opacity-50;
+}
+
+/* Custom scrollbar for textareas */
+textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+    @apply bg-gray-700;
+}
+
+textarea::-webkit-scrollbar-thumb {
+    @apply bg-gray-500 rounded;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .container {
+        @apply px-3;
+    }
+    
+    .grid-cols-1\.md\:grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .response-content {
+        max-height: 200px;
+    }
+}
+
+/* Dark theme enhancements */
+body {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+.bg-gray-800 {
+    background-color: rgba(31, 41, 55, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+/* Animation for panel appearing */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#resultsSection {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Error states */
+.error {
+    @apply text-red-400 bg-red-900 bg-opacity-20 p-2 rounded border border-red-700;
+}
+
+.success {
+    @apply text-green-400 bg-green-900 bg-opacity-20 p-2 rounded border border-green-700;
+}

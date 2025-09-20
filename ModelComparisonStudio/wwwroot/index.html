@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison Studio</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-purple-400 mb-2">Model Comparison Studio</h1>
+            <p class="text-gray-400">Compare AI language models side-by-side</p>
+        </header>
+
+        <!-- Model Selection Section -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">Select Models (Max 3)</h2>
+                <button id="addModelBtn" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                    + Add Model
+                </button>
+            </div>
+            
+            <!-- Model Input Form (Hidden by default) -->
+            <div id="modelInputForm" class="hidden mb-4 p-4 bg-gray-800 rounded">
+                <input type="text" id="modelIdInput" placeholder="provider/model-name" 
+                       class="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white">
+                <div class="flex gap-2 mt-2">
+                    <button id="addModelConfirm" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded">
+                        Add
+                    </button>
+                    <button id="cancelAddModel" class="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selected Models Pills -->
+            <div id="selectedModels" class="flex flex-wrap gap-2">
+                <div class="text-gray-500">No models selected</div>
+            </div>
+        </section>
+
+        <!-- Prompt Input Section -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Test Prompt</h2>
+            <textarea id="promptInput" 
+                     placeholder="Enter your test prompt here..." 
+                     class="w-full h-32 p-4 bg-gray-800 border border-gray-600 rounded text-white resize-none"></textarea>
+            <button id="runComparisonBtn" 
+                   class="mt-4 bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded font-semibold disabled:opacity-50"
+                   disabled>
+                Run Comparison
+            </button>
+        </section>
+
+        <!-- Comparison Results Section -->
+        <section id="resultsSection" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">Comparison Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Model 1 Panel -->
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-purple-300">Model 1</h3>
+                        <div class="text-sm text-gray-400">-</div>
+                    </div>
+                    <div class="response-content bg-gray-900 p-3 rounded min-h-32 text-gray-300">
+                        <div class="loading hidden">Loading...</div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="rating-section">
+                            <div class="stars flex gap-1">
+                                <!-- Star ratings will be added dynamically -->
+                            </div>
+                            <textarea placeholder="Comments..." class="w-full mt-2 p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model 2 Panel -->
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-purple-300">Model 2</h3>
+                        <div class="text-sm text-gray-400">-</div>
+                    </div>
+                    <div class="response-content bg-gray-900 p-3 rounded min-h-32 text-gray-300">
+                        <div class="loading hidden">Loading...</div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="rating-section">
+                            <div class="stars flex gap-1"></div>
+                            <textarea placeholder="Comments..." class="w-full mt-2 p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model 3 Panel -->
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-semibold text-purple-300">Model 3</h3>
+                        <div class="text-sm text-gray-400">-</div>
+                    </div>
+                    <div class="response-content bg-gray-900 p-3 rounded min-h-32 text-gray-300">
+                        <div class="loading hidden">Loading...</div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="rating-section">
+                            <div class="stars flex gap-1"></div>
+                            <textarea placeholder="Comments..." class="w-full mt-2 p-2 bg-gray-700 border border-gray-600 rounded text-white text-sm resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
