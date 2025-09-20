@@ -9,7 +9,7 @@ The application reads model configuration from appsettings.json
 The frontend loads available models via [`ModelApiController.GetAvailableModels() which reads from the `AvailableModels` configuration. The JavaScript code in [`model-selector.js`] handles dropdown population and stores the selected model ID.
 
 ### 3. Request Flow to Backend
-When analysis starts, the frontend sends a [`RunComparisonRequest`](AICodeReviewer.Web/Models/RunAnalysisRequest.cs:15) containing the selected model IDs to [`ExecutionApiController.StartAnalysis()`].
+When analysis starts, the frontend sends a [`RunComparisonRequest`]containing the selected model IDs to [`ExecutionApiController.StartAnalysis()`].
 
 ### 4. Backend Processing Pipeline
 The request flows through:
@@ -19,7 +19,7 @@ The request flows through:
 4. **AIService** - Makes the actual AI calls
 
 ### 5. External API Call
-The [`AIService.AnalyzeCodeAsync()`](AICodeReviewer.Web/Infrastructure/Services/AIService.cs:66) method:
+The [`AIService.AnalyzeCodeAsync()`]method:
 - Receives the selected `model` parameter directly from frontend
 - Builds prompt using language-specific templates
 - Constructs HTTP request to OpenRouter or NanoGPT API (based on the provided configuration)

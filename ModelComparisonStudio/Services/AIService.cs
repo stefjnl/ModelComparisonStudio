@@ -61,7 +61,9 @@ namespace ModelComparisonStudio.Services
 
             try
             {
+                _logger.LogInformation("=== AnalyzeCodeAsync Started ===");
                 _logger.LogInformation("Starting analysis with model {ModelId}", modelId);
+                _logger.LogInformation("Prompt: {Prompt}", prompt);
                 _logger.LogInformation("Configuration loaded - NanoGPT API Key: {ApiKey}, OpenRouter API Key: {OpenRouterApiKey}",
                     _apiConfiguration.NanoGPT?.ApiKey ?? "NULL",
                     _apiConfiguration.OpenRouter?.ApiKey ?? "NULL");
@@ -89,19 +91,26 @@ namespace ModelComparisonStudio.Services
                 };
 
                 var jsonRequest = JsonSerializer.Serialize(request);
+                _logger.LogInformation("Request JSON: {RequestJson}", jsonRequest);
                 var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
                 // Set up headers
+                _logger.LogInformation("Setting up HTTP headers for {Provider} API call", provider);
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
                 _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
                 _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
+                
+                _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], HTTP-Referer: https://modelcomparisonstudio.com, X-Title: Model Comparison Studio");
 
                 // Make the API call
+                _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
                 var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
 
                 stopwatch.Stop();
                 var responseTime = stopwatch.ElapsedMilliseconds;
+
+                _logger.LogInformation("API call completed in {ResponseTime}ms with status code {StatusCode}", responseTime, (int)response.StatusCode);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -120,12 +129,69 @@ namespace ModelComparisonStudio.Services
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-                var apiResponse = JsonSerializer.Deserialize<OpenRouterResponse>(jsonResponse);
-
-                if (apiResponse?.Choices?.Length == 0)
+                _logger.LogInformation("Raw API response: {ResponseJson}", jsonResponse);
+                
+                // Try to deserialize with more robust error handling
+                OpenRouterResponse? apiResponse = null;
+                try
                 {
-                    throw new InvalidOperationException("No response choices returned from API");
+                    _logger.LogInformation("Attempting JSON deserialization...");
+                    apiResponse = JsonSerializer.Deserialize<OpenRouterResponse>(jsonResponse, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        ReadCommentHandling = JsonCommentHandling.Skip,
+                        AllowTrailingCommas = true
+                    });
+                    _logger.LogInformation("JSON deserialization completed successfully");
                 }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, "JSON deserialization failed: {ErrorMessage}", jsonEx.Message);
+                    _logger.LogError("JSON parsing error details - Path: {Path}, LineNumber: {LineNumber}, BytePositionInLine: {BytePositionInLine}",
+                        jsonEx.Path, jsonEx.LineNumber, jsonEx.BytePositionInLine);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "General deserialization error: {ErrorMessage}", ex.Message);
+                }
+
+                _logger.LogInformation("Deserialized API response - ID: '{Id}', Object: '{Object}', Model: '{Model}', Choices: {ChoiceCount}, Provider: '{Provider}'",
+                    apiResponse?.Id ?? "NULL",
+                    apiResponse?.Object ?? "NULL",
+                    apiResponse?.Model ?? "NULL",
+                    apiResponse?.Choices?.Length ?? -1,
+                    apiResponse?.Provider ?? "NULL");
+
+                // Also log the raw JSON structure for debugging
+                try
+                {
+                    using var jsonDoc = JsonDocument.Parse(jsonResponse);
+                    _logger.LogInformation("Raw JSON structure analysis - Root element: {RootElement}, Has choices property: {HasChoices}, Choices array length: {ChoicesLength}",
+                        jsonDoc.RootElement.ValueKind,
+                        jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp),
+                        choicesProp.ValueKind == JsonValueKind.Array ? choicesProp.GetArrayLength() : -1);
+                }
+                catch (Exception parseEx)
+                {
+                    _logger.LogError(parseEx, "Failed to parse JSON structure: {ErrorMessage}", parseEx.Message);
+                }
+
+                if (apiResponse?.Choices == null)
+                {
+                    _logger.LogError("API response choices is null for model {ModelId}", modelId);
+                    throw new InvalidOperationException("API response choices is null");
+                }
+
+                if (apiResponse.Choices.Length == 0)
+                {
+                    _logger.LogError("No response choices returned from API for model {ModelId}. Response: {ResponseJson}", modelId, jsonResponse);
+                    throw new InvalidOperationException($"No response choices returned from API. Raw response: {jsonResponse}");
+                }
+
+                _logger.LogInformation("Processing choice 0 - Role: {Role}, Content length: {ContentLength}, Finish reason: {FinishReason}",
+                    apiResponse.Choices[0].Message?.Role ?? "NULL",
+                    apiResponse.Choices[0].Message?.Content?.Length ?? 0,
+                    apiResponse.Choices[0].FinishReason ?? "NULL");
 
                 var result = new AnalysisResult
                 {
@@ -144,7 +210,7 @@ namespace ModelComparisonStudio.Services
             catch (Exception ex)
             {
                 stopwatch.Stop();
-                _logger.LogError(ex, "Error analyzing code with model {ModelId}", modelId);
+                _logger.LogError(ex, "Error analyzing code with model {ModelId}. Error: {ErrorMessage}", modelId, ex.Message);
 
                 return new AnalysisResult
                 {
@@ -154,6 +220,10 @@ namespace ModelComparisonStudio.Services
                     Status = "error",
                     ErrorMessage = ex.Message
                 };
+            }
+            finally
+            {
+                _logger.LogInformation("=== AnalyzeCodeAsync Completed ===");
             }
         }
 
@@ -292,8 +362,10 @@ namespace ModelComparisonStudio.Services
         public string Object { get; set; } = string.Empty;
         public long Created { get; set; }
         public string Model { get; set; } = string.Empty;
+        public string Provider { get; set; } = string.Empty;
         public Choice[] Choices { get; set; } = Array.Empty<Choice>();
         public Usage Usage { get; set; } = new Usage();
+        public string SystemFingerprint { get; set; } = string.Empty;
     }
 
     public class Choice
@@ -301,12 +373,16 @@ namespace ModelComparisonStudio.Services
         public int Index { get; set; }
         public Message Message { get; set; } = new Message();
         public string FinishReason { get; set; } = string.Empty;
+        public string? NativeFinishReason { get; set; }
+        public object? Logprobs { get; set; }
     }
 
     public class Message
     {
         public string Role { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
+        public string? Refusal { get; set; }
+        public string? Reasoning { get; set; }
     }
 
     public class Usage
@@ -314,5 +390,14 @@ namespace ModelComparisonStudio.Services
         public int PromptTokens { get; set; }
         public int CompletionTokens { get; set; }
         public int TotalTokens { get; set; }
+        public UsageDetails? PromptTokensDetails { get; set; }
+        public UsageDetails? CompletionTokensDetails { get; set; }
+    }
+
+    public class UsageDetails
+    {
+        public int CachedTokens { get; set; }
+        public int AudioTokens { get; set; }
+        public int ReasoningTokens { get; set; }
     }
 }

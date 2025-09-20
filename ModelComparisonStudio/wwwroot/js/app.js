@@ -46,7 +46,8 @@ class ModelComparisonApp {
     // Load available models from backend or fallback to appsettings
     async loadAvailableModels() {
         try {
-            const response = await fetch('/api/models/available');
+            // Use HTTPS port 7047 for API calls to avoid redirect issues
+            const response = await fetch('https://localhost:7047/api/models/available');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -393,7 +394,14 @@ class ModelComparisonApp {
     }
 
     showResultsSection() {
-        document.getElementById('resultsSection').classList.remove('hidden');
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection) {
+            console.log('DEBUG: Showing results section, removing hidden class');
+            resultsSection.classList.remove('hidden');
+            console.log('DEBUG: Results section classes after removal:', resultsSection.className);
+        } else {
+            console.error('DEBUG: resultsSection element not found!');
+        }
     }
 
     prepareResponsePanels() {
@@ -534,7 +542,8 @@ class ModelComparisonApp {
 
             console.log('Starting comparison with models:', this.selectedModels);
 
-            const response = await fetch('/api/comparison/execute', {
+            // Use HTTPS port 7047 for API calls to avoid redirect issues
+            const response = await fetch('https://localhost:7047/api/comparison/execute', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -586,8 +595,52 @@ class ModelComparisonApp {
 
     // Display comparison results
     displayComparisonResults(result) {
-        const panels = document.querySelectorAll('.bg-gray-800.rounded-lg');
+        console.log('DEBUG: displayComparisonResults called with:', result);
+        console.log('DEBUG: Number of results:', result.results.length);
+        
+        // The key insight: we should find the .response-content elements directly,
+        // then work backwards to their parent panels
+        const responseContents = document.querySelectorAll('#resultsSection .response-content');
+        console.log('DEBUG: Direct query for #resultsSection .response-content:', responseContents.length);
 
+        if (responseContents.length === 0) {
+            console.error('DEBUG: No .response-content elements found!');
+            this.displayErrorMessage('No response content areas found in the UI');
+            return;
+        }
+
+        // Use the parent elements of the response-content divs as our panels
+        const panels = Array.from(responseContents).map(content => content.parentElement);
+        console.log(`DEBUG: Found ${panels.length} panels (parents of .response-content)`);
+
+        // Verify we have the right panels by checking they have the expected structure
+        const validPanels = panels.filter(panel => {
+            const hasMetrics = panel.querySelector('.text-sm') !== null;
+            const hasStars = panel.querySelector('.stars') !== null;
+            const hasHeader = panel.querySelector('h3') !== null;
+            console.log(`DEBUG: Panel validation - metrics:${hasMetrics}, stars:${hasStars}, header:${hasHeader}`);
+            return hasMetrics || hasStars || hasHeader; // At least one of these should be present
+        });
+
+        console.log(`DEBUG: Valid panels after structure check: ${validPanels.length}`);
+
+        if (validPanels.length === 0) {
+            console.error('DEBUG: No valid panels found after structure validation!');
+            this.displayErrorMessage('No valid response panels found');
+            return;
+        }
+
+        this.populatePanels(validPanels, result);
+
+        // Re-enable UI
+        this.setComparisonInProgress(false);
+
+        // Show success message
+        this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
+    }
+
+    // Helper method to populate panels
+    populatePanels(panels, result) {
         result.results.forEach((modelResult, index) => {
             if (index < panels.length) {
                 const panel = panels[index];
@@ -595,36 +648,71 @@ class ModelComparisonApp {
                 const loading = panel.querySelector('.loading');
                 const metrics = panel.querySelector('.text-sm');
 
-                // Hide loading indicator
-                loading.classList.add('hidden');
+                if (!content) {
+                    console.error(`DEBUG: No .response-content found in panel ${index}`);
+                    return;
+                }
 
-                // Set content
-                content.textContent = modelResult.response;
+                console.log(`DEBUG: Populating panel ${index} with model:`, modelResult.modelId);
+
+                // Hide loading indicator
+                if (loading) loading.classList.add('hidden');
+
+                // Format and set content with proper styling
+                const formattedResponse = this.formatResponseContent(modelResult.response);
+                content.innerHTML = formattedResponse;
 
                 // Set metrics
                 const timeText = `${(modelResult.responseTimeMs / 1000).toFixed(1)}s`;
                 const tokenText = modelResult.tokenCount ? ` • ${modelResult.tokenCount} tokens` : '';
                 const statusText = modelResult.status === 'success' ? '' : ` • ${modelResult.status}`;
-                metrics.textContent = `${timeText}${tokenText}${statusText}`;
+                if (metrics) {
+                    metrics.textContent = `${timeText}${tokenText}${statusText}`;
+                }
 
                 // Add error styling if failed
                 if (modelResult.status === 'error') {
                     content.style.color = '#ef4444';
                     content.style.fontStyle = 'italic';
+                } else {
+                    // Success styling
+                    content.style.color = '#ffffff';
+                    content.style.fontStyle = 'normal';
                 }
 
                 // Add star rating
                 const starsContainer = panel.querySelector('.stars');
-                starsContainer.innerHTML = this.createStarRating(0);
-                this.setupStarRating(starsContainer);
+                if (starsContainer) {
+                    starsContainer.innerHTML = this.createStarRating(0);
+                    this.setupStarRating(starsContainer);
+                }
+            } else {
+                console.warn(`DEBUG: No panel available for result index ${index}`);
             }
         });
+    }
 
-        // Re-enable UI
-        this.setComparisonInProgress(false);
+    // Format response content for better display
+    formatResponseContent(response) {
+        if (!response) return '';
 
-        // Show success message
-        this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
+        // Replace line breaks with <br> tags for proper display
+        let formatted = response
+            .replace(/\n\n/g, '</p><p>')  // Double line breaks become paragraphs
+            .replace(/\n/g, '<br>');      // Single line breaks become <br>
+
+        // Handle markdown-style bold text (**text**)
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Handle markdown-style italic text (*text*)
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // Wrap in paragraph tags if it contains multiple lines
+        if (formatted.includes('<br>') || formatted.includes('</p>')) {
+            formatted = '<p>' + formatted + '</p>';
+        }
+
+        return formatted;
     }
 
     // Comparison methods
