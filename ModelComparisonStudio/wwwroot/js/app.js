@@ -647,6 +647,7 @@ class ModelComparisonApp {
                 const content = panel.querySelector('.response-content');
                 const loading = panel.querySelector('.loading');
                 const metrics = panel.querySelector('.text-sm');
+                const header = panel.querySelector('h3');
 
                 if (!content) {
                     console.error(`DEBUG: No .response-content found in panel ${index}`);
@@ -654,6 +655,14 @@ class ModelComparisonApp {
                 }
 
                 console.log(`DEBUG: Populating panel ${index} with model:`, modelResult.modelId);
+
+                // Update the model name in the header
+                if (header) {
+                    header.textContent = modelResult.modelId;
+                    console.log(`DEBUG: Updated header for panel ${index} to:`, modelResult.modelId);
+                } else {
+                    console.warn(`DEBUG: No h3 header found in panel ${index}`);
+                }
 
                 // Hide loading indicator
                 if (loading) loading.classList.add('hidden');
