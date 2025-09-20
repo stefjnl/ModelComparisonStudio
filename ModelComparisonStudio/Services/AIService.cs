@@ -22,6 +22,11 @@ namespace ModelComparisonStudio.Services
             _httpClient = httpClient;
             _logger = logger;
             
+            // Configure HttpClient for larger requests and longer timeouts
+            _httpClient.Timeout = TimeSpan.FromMinutes(5); // Increased from default 100 seconds
+            _httpClient.DefaultRequestHeaders.Accept.Clear();
+            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            
             // Enhanced diagnostic logging
             _logger.LogInformation("=== AIService Configuration Diagnostic ===");
             _logger.LogInformation("NanoGPT Configuration: {@NanoGPT}", _apiConfiguration.NanoGPT);
@@ -78,7 +83,11 @@ namespace ModelComparisonStudio.Services
                     throw new InvalidOperationException($"API key not configured for {provider}");
                 }
 
-                // Prepare the request
+                // Prepare the request - use dynamic max_tokens based on prompt size
+                var promptLength = prompt.Length;
+                var maxTokens = Math.Min(4000, Math.Max(1000, promptLength / 2)); // Dynamic calculation
+                if (promptLength > 2000) maxTokens = 4000; // For very large prompts, use max tokens
+                
                 var request = new
                 {
                     model = modelId,
@@ -86,9 +95,13 @@ namespace ModelComparisonStudio.Services
                     {
                         new { role = "user", content = prompt }
                     },
-                    max_tokens = 1000,
+                    max_tokens = maxTokens,
                     temperature = 0.7
                 };
+
+                // Log request size for debugging
+                _logger.LogInformation("Request details - Prompt length: {PromptLength} characters, Model: {ModelId}, Max tokens: {MaxTokens}",
+                    promptLength, modelId, maxTokens);
 
                 var jsonRequest = JsonSerializer.Serialize(request);
                 _logger.LogInformation("Request JSON: {RequestJson}", jsonRequest);
@@ -103,109 +116,160 @@ namespace ModelComparisonStudio.Services
                 
                 _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], HTTP-Referer: https://modelcomparisonstudio.com, X-Title: Model Comparison Studio");
 
-                // Make the API call
+                // Make the API call with enhanced error handling for large requests
                 _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
-                var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
-
-                stopwatch.Stop();
-                var responseTime = stopwatch.ElapsedMilliseconds;
-
-                _logger.LogInformation("API call completed in {ResponseTime}ms with status code {StatusCode}", responseTime, (int)response.StatusCode);
-
-                if (!response.IsSuccessStatusCode)
+                
+                try
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("API call failed for model {ModelId}: {StatusCode} - {ErrorContent}",
-                        modelId, response.StatusCode, errorContent);
+                    var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
+                    
+                    // Process response normally
+                    stopwatch.Stop();
+                    var apiResponseTime = stopwatch.ElapsedMilliseconds;
 
+                    _logger.LogInformation("API call completed in {ResponseTime}ms with status code {StatusCode}", apiResponseTime, (int)response.StatusCode);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        _logger.LogError("API call failed for model {ModelId}: {StatusCode} - {ErrorContent}",
+                            modelId, response.StatusCode, errorContent);
+
+                        return new AnalysisResult
+                        {
+                            ModelId = modelId,
+                            Response = $"Error: {response.StatusCode} - {response.ReasonPhrase}",
+                            ResponseTimeMs = apiResponseTime,
+                            Status = "error",
+                            ErrorMessage = errorContent
+                        };
+                    }
+
+                    // Process successful response
+                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogInformation("Raw API response: {ResponseJson}", responseJson);
+                    
+                    // Try to deserialize with more robust error handling
+                    OpenRouterResponse? deserializedResponse = null;
+                    try
+                    {
+                        _logger.LogInformation("Attempting JSON deserialization...");
+                        deserializedResponse = JsonSerializer.Deserialize<OpenRouterResponse>(responseJson, new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true,
+                            ReadCommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        });
+                        _logger.LogInformation("JSON deserialization completed successfully");
+                    }
+                    catch (JsonException jsonEx)
+                    {
+                        _logger.LogError(jsonEx, "JSON deserialization failed: {ErrorMessage}", jsonEx.Message);
+                        _logger.LogError("JSON parsing error details - Path: {Path}, LineNumber: {LineNumber}, BytePositionInLine: {BytePositionInLine}",
+                            jsonEx.Path, jsonEx.LineNumber, jsonEx.BytePositionInLine);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "General deserialization error: {ErrorMessage}", ex.Message);
+                    }
+
+                    _logger.LogInformation("Deserialized API response - ID: '{Id}', Object: '{Object}', Model: '{Model}', Choices: {ChoiceCount}, Provider: '{Provider}'",
+                        deserializedResponse?.Id ?? "NULL",
+                        deserializedResponse?.Object ?? "NULL",
+                        deserializedResponse?.Model ?? "NULL",
+                        deserializedResponse?.Choices?.Length ?? -1,
+                        deserializedResponse?.Provider ?? "NULL");
+
+                    // Also log the raw JSON structure for debugging
+                    try
+                    {
+                        using var jsonDoc = JsonDocument.Parse(responseJson);
+                        _logger.LogInformation("Raw JSON structure analysis - Root element: {RootElement}, Has choices property: {HasChoices}, Choices array length: {ChoicesLength}",
+                            jsonDoc.RootElement.ValueKind,
+                            jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp),
+                            choicesProp.ValueKind == JsonValueKind.Array ? choicesProp.GetArrayLength() : -1);
+                    }
+                    catch (Exception parseEx)
+                    {
+                        _logger.LogError(parseEx, "Failed to parse JSON structure: {ErrorMessage}", parseEx.Message);
+                    }
+
+                    if (deserializedResponse?.Choices == null)
+                    {
+                        _logger.LogError("API response choices is null for model {ModelId}", modelId);
+                        throw new InvalidOperationException("API response choices is null");
+                    }
+
+                    if (deserializedResponse.Choices.Length == 0)
+                    {
+                        _logger.LogError("No response choices returned from API for model {ModelId}. Response: {ResponseJson}", modelId, responseJson);
+                        throw new InvalidOperationException($"No response choices returned from API. Raw response: {responseJson}");
+                    }
+
+                    _logger.LogInformation("Processing choice 0 - Role: {Role}, Content length: {ContentLength}, Finish reason: {FinishReason}",
+                        deserializedResponse.Choices[0].Message?.Role ?? "NULL",
+                        deserializedResponse.Choices[0].Message?.Content?.Length ?? 0,
+                        deserializedResponse.Choices[0].FinishReason ?? "NULL");
+
+                    var analysisResult = new AnalysisResult
+                    {
+                        ModelId = modelId,
+                        Response = deserializedResponse.Choices[0].Message.Content,
+                        ResponseTimeMs = apiResponseTime,
+                        TokenCount = deserializedResponse.Usage?.TotalTokens,
+                        Status = "success"
+                    };
+
+                    _logger.LogInformation("Analysis completed for model {ModelId} in {ResponseTime}ms with {TokenCount} tokens",
+                        modelId, apiResponseTime, deserializedResponse.Usage?.TotalTokens ?? 0);
+
+                    return analysisResult;
+                }
+                catch (TaskCanceledException tex) when (tex.InnerException is TimeoutException)
+                {
+                    stopwatch.Stop();
+                    _logger.LogError(tex, "Request timeout for model {ModelId} after {ResponseTime}ms. Prompt length: {PromptLength}",
+                        modelId, stopwatch.ElapsedMilliseconds, prompt.Length);
+                    
                     return new AnalysisResult
                     {
                         ModelId = modelId,
-                        Response = $"Error: {response.StatusCode} - {response.ReasonPhrase}",
-                        ResponseTimeMs = responseTime,
+                        Response = "Error: Request timeout - the model took too long to respond. Try a shorter prompt.",
+                        ResponseTimeMs = stopwatch.ElapsedMilliseconds,
                         Status = "error",
-                        ErrorMessage = errorContent
+                        ErrorMessage = $"Request timeout after {stopwatch.ElapsedMilliseconds}ms. The prompt may be too long or the model may be overloaded."
                     };
                 }
-
-                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogInformation("Raw API response: {ResponseJson}", jsonResponse);
-                
-                // Try to deserialize with more robust error handling
-                OpenRouterResponse? apiResponse = null;
-                try
+                catch (TaskCanceledException tex) when (cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogInformation("Attempting JSON deserialization...");
-                    apiResponse = JsonSerializer.Deserialize<OpenRouterResponse>(jsonResponse, new JsonSerializerOptions
+                    stopwatch.Stop();
+                    _logger.LogWarning(tex, "Request cancelled for model {ModelId} after {ResponseTime}ms",
+                        modelId, stopwatch.ElapsedMilliseconds);
+                    
+                    return new AnalysisResult
                     {
-                        PropertyNameCaseInsensitive = true,
-                        ReadCommentHandling = JsonCommentHandling.Skip,
-                        AllowTrailingCommas = true
-                    });
-                    _logger.LogInformation("JSON deserialization completed successfully");
+                        ModelId = modelId,
+                        Response = "Error: Request was cancelled.",
+                        ResponseTimeMs = stopwatch.ElapsedMilliseconds,
+                        Status = "error",
+                        ErrorMessage = "Request was cancelled by user."
+                    };
                 }
-                catch (JsonException jsonEx)
+                catch (HttpRequestException hex)
                 {
-                    _logger.LogError(jsonEx, "JSON deserialization failed: {ErrorMessage}", jsonEx.Message);
-                    _logger.LogError("JSON parsing error details - Path: {Path}, LineNumber: {LineNumber}, BytePositionInLine: {BytePositionInLine}",
-                        jsonEx.Path, jsonEx.LineNumber, jsonEx.BytePositionInLine);
+                    stopwatch.Stop();
+                    _logger.LogError(hex, "HTTP request error for model {ModelId}: {ErrorMessage}. Prompt length: {PromptLength}",
+                        modelId, hex.Message, prompt.Length);
+                    
+                    return new AnalysisResult
+                    {
+                        ModelId = modelId,
+                        Response = $"Error: HTTP request failed - {hex.Message}",
+                        ResponseTimeMs = stopwatch.ElapsedMilliseconds,
+                        Status = "error",
+                        ErrorMessage = $"HTTP request error: {hex.Message}. This may be due to network issues or request size limits."
+                    };
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "General deserialization error: {ErrorMessage}", ex.Message);
-                }
-
-                _logger.LogInformation("Deserialized API response - ID: '{Id}', Object: '{Object}', Model: '{Model}', Choices: {ChoiceCount}, Provider: '{Provider}'",
-                    apiResponse?.Id ?? "NULL",
-                    apiResponse?.Object ?? "NULL",
-                    apiResponse?.Model ?? "NULL",
-                    apiResponse?.Choices?.Length ?? -1,
-                    apiResponse?.Provider ?? "NULL");
-
-                // Also log the raw JSON structure for debugging
-                try
-                {
-                    using var jsonDoc = JsonDocument.Parse(jsonResponse);
-                    _logger.LogInformation("Raw JSON structure analysis - Root element: {RootElement}, Has choices property: {HasChoices}, Choices array length: {ChoicesLength}",
-                        jsonDoc.RootElement.ValueKind,
-                        jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp),
-                        choicesProp.ValueKind == JsonValueKind.Array ? choicesProp.GetArrayLength() : -1);
-                }
-                catch (Exception parseEx)
-                {
-                    _logger.LogError(parseEx, "Failed to parse JSON structure: {ErrorMessage}", parseEx.Message);
-                }
-
-                if (apiResponse?.Choices == null)
-                {
-                    _logger.LogError("API response choices is null for model {ModelId}", modelId);
-                    throw new InvalidOperationException("API response choices is null");
-                }
-
-                if (apiResponse.Choices.Length == 0)
-                {
-                    _logger.LogError("No response choices returned from API for model {ModelId}. Response: {ResponseJson}", modelId, jsonResponse);
-                    throw new InvalidOperationException($"No response choices returned from API. Raw response: {jsonResponse}");
-                }
-
-                _logger.LogInformation("Processing choice 0 - Role: {Role}, Content length: {ContentLength}, Finish reason: {FinishReason}",
-                    apiResponse.Choices[0].Message?.Role ?? "NULL",
-                    apiResponse.Choices[0].Message?.Content?.Length ?? 0,
-                    apiResponse.Choices[0].FinishReason ?? "NULL");
-
-                var result = new AnalysisResult
-                {
-                    ModelId = modelId,
-                    Response = apiResponse.Choices[0].Message.Content,
-                    ResponseTimeMs = responseTime,
-                    TokenCount = apiResponse.Usage?.TotalTokens,
-                    Status = "success"
-                };
-
-                _logger.LogInformation("Analysis completed for model {ModelId} in {ResponseTime}ms with {TokenCount} tokens",
-                    modelId, responseTime, apiResponse.Usage?.TotalTokens ?? 0);
-
-                return result;
             }
             catch (Exception ex)
             {

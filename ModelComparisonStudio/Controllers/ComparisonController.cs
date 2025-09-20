@@ -41,13 +41,32 @@ namespace ModelComparisonStudio.Controllers
                 // Validate the request
                 if (!ModelState.IsValid)
                 {
+                    var errors = ModelState.Values.SelectMany(v => v.Errors).ToList();
                     _logger.LogWarning("Invalid comparison request: {Errors}",
-                        string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+                        string.Join(", ", errors.Select(e => e.ErrorMessage)));
+
+                    // Create user-friendly error messages
+                    var friendlyErrors = errors.Select(error => error.ErrorMessage switch
+                    {
+                        string msg when msg.Contains("must be between 1 and 50000 characters") =>
+                            "Your prompt is too long! Please keep it under 50,000 characters (currently it's too long). Try breaking it into smaller sections.",
+                        string msg when msg.Contains("must be between 1 and") =>
+                            "Your prompt is too short! Please provide at least 1 character.",
+                        string msg when msg.Contains("Maximum of 3 models") =>
+                            "You can only compare up to 3 models at once. Please select fewer models.",
+                        string msg when msg.Contains("At least one model") =>
+                            "Please select at least one AI model to compare.",
+                        _ => error.ErrorMessage
+                    }).ToList();
 
                     return BadRequest(new
                     {
-                        error = "Invalid request",
-                        details = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)
+                        type = "validation_error",
+                        title = "Validation Error",
+                        status = 400,
+                        errors = friendlyErrors,
+                        traceId = HttpContext.TraceIdentifier,
+                        userMessage = friendlyErrors.FirstOrDefault() ?? "Please check your input and try again."
                     });
                 }
 

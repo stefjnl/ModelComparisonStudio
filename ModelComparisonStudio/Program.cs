@@ -6,7 +6,32 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Configure to handle large request bodies
+    options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(
+        _ => "The field is required.");
+});
+
+// Configure form options to handle large requests
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueCountLimit = 10000;
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
+
+// Add CORS to allow frontend requests
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:7047", "http://localhost:5211")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 // Register AIService
 builder.Services.AddHttpClient<AIService>();
@@ -63,6 +88,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Add CORS middleware
+app.UseCors("AllowFrontend");
 
 // Serve default file (index.html) when no specific file is requested
 app.UseDefaultFiles();
