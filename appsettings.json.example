@@ -1,0 +1,35 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "NanoGPT": {
+    "ApiKey": "your-nanogpt-api-key-here",
+    "BaseUrl": "https://api.nano-gpt.com",
+    "AvailableModels": [
+      "deepseek/deepseek-chat-v3.1",
+      "qwen/qwen3-coder",
+      "moonshotai/kimi-k2-0905",
+      "qwen/qwen3-next-80b-a3b-instruct",
+      "anthropic/claude-3.5-sonnet",
+      "openai/gpt-4o-mini",
+      "google/gemini-2.0-flash-exp"
+    ]
+  },
+  "OpenRouter": {
+    "ApiKey": "your-openrouter-api-key-here",
+    "BaseUrl": "https://openrouter.ai/api/v1",
+    "AvailableModels": [
+      "deepseek/deepseek-chat-v3.1",
+      "qwen/qwen3-coder",
+      "moonshotai/kimi-k2-0905",
+      "qwen/qwen3-next-80b-a3b-instruct",
+      "anthropic/claude-3.5-sonnet",
+      "openai/gpt-4o-mini",
+      "google/gemini-2.0-flash-exp"
+    ]
+  }
+}

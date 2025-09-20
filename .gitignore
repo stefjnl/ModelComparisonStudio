@@ -435,9 +435,17 @@ jspm_packages/
 # dotnet watch
 .hotReload/
 
-# ASP.NET Core
-appsettings.Development.json.user
-appsettings.Production.json.user
+# ASP.NET Core - sensitive configuration files
+appsettings.json
+appsettings.*.json
+appsettings.*.json.user
+!appsettings.json.example
+appsettings.local.json
+appsettings.*.local.json
+# AppHost configuration
+ModelComparisonStudio.AppHost/appsettings.json
+ModelComparisonStudio.AppHost/appsettings.*.json
+!ModelComparisonStudio.AppHost/appsettings.json.example
 
 # Local development certificates
 *.pfx
