@@ -3,8 +3,33 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+
+// Configure API settings
+builder.Services.Configure<ModelComparisonStudio.Configuration.ApiConfiguration>(
+    builder.Configuration.GetSection("ApiConfiguration"));
+
+// Add API configuration as a singleton for direct access
+builder.Services.AddSingleton<ModelComparisonStudio.Configuration.ApiConfiguration>(sp =>
+{
+    var configuration = builder.Configuration;
+    return new ModelComparisonStudio.Configuration.ApiConfiguration
+    {
+        NanoGPT = new ModelComparisonStudio.Configuration.NanoGPTConfiguration
+        {
+            ApiKey = configuration["NanoGPT:ApiKey"] ?? string.Empty,
+            BaseUrl = configuration["NanoGPT:BaseUrl"] ?? "https://api.nano-gpt.com",
+            AvailableModels = configuration.GetSection("NanoGPT:AvailableModels").Get<string[]>() ?? Array.Empty<string>()
+        },
+        OpenRouter = new ModelComparisonStudio.Configuration.OpenRouterConfiguration
+        {
+            ApiKey = configuration["OpenRouter:ApiKey"] ?? string.Empty,
+            BaseUrl = configuration["OpenRouter:BaseUrl"] ?? "https://openrouter.ai/api/v1",
+            AvailableModels = configuration.GetSection("OpenRouter:AvailableModels").Get<string[]>() ?? Array.Empty<string>()
+        }
+    };
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
