@@ -392,6 +392,9 @@ secrets.json
 appsettings.*.json.user
 appsettings.local.json
 appsettings.*.local.json
+appsettings.json
+app.Development.json
+
 
 # Logs
 *.log
@@ -453,3 +456,4 @@ ModelComparisonStudio.AppHost/appsettings.*.json
 
 # Azure Functions
 azure-functions-host/
+ModelComparisonStudio.AppHost/appsettings.json
