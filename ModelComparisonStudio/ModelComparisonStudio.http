@@ -1,0 +1,6 @@
+@ModelComparisonStudio_HostAddress = http://localhost:5211
+
+GET {{ModelComparisonStudio_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
