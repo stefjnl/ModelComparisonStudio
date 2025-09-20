@@ -10,7 +10,21 @@ class ModelComparisonApp {
         this.currentComparison = null;
         
         this.initializeEventListeners();
-        this.loadAvailableModels();
+        
+        // Ensure DOM is ready before loading models
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('DEBUG: DOM ready, loading available models');
+                this.loadAvailableModels();
+            });
+        } else {
+            // DOM is already ready
+            console.log('DEBUG: DOM already ready, loading available models immediately');
+            setTimeout(() => {
+                this.loadAvailableModels();
+            }, 100); // Small delay for any remaining async operations
+        }
+        
         this.updateUI();
     }
 
@@ -29,7 +43,7 @@ class ModelComparisonApp {
         document.getElementById('promptInput').addEventListener('input', () => this.updateRunButtonState());
     }
 
-    // Load available models from backend
+    // Load available models from backend or fallback to appsettings
     async loadAvailableModels() {
         try {
             const response = await fetch('/api/models/available');
@@ -43,55 +57,136 @@ class ModelComparisonApp {
                 openRouter: data.openRouter.models || []
             };
             
+            console.log('Loaded models from API:', this.availableModels);
             this.displayAvailableModels();
-            console.log('Loaded models:', this.availableModels);
+            
         } catch (error) {
-            console.error('Error loading available models:', error);
-            this.displayErrorMessage('Failed to load available models. Using default model list.');
-            this.loadDefaultModels();
+            console.error('Error loading available models from API:', error);
+            this.displayErrorMessage('Failed to load available models from API. Loading from configuration.');
+            this.loadModelsFromConfiguration();
         }
     }
 
-    // Display available models in the UI
-    displayAvailableModels() {
-        const allModels = [
-            ...this.availableModels.nanoGPT.map(m => ({ model: m, provider: 'NanoGPT' })),
-            ...this.availableModels.openRouter.map(m => ({ model: m, provider: 'OpenRouter' }))
-        ];
+    // Load models directly from appsettings.json configuration
+    loadModelsFromConfiguration() {
+        // Fallback models from appsettings.json structure
+        this.availableModels = {
+            nanoGPT: [
+                "deepseek/deepseek-chat-v3.1",
+                "qwen/qwen3-coder",
+                "moonshotai/kimi-k2-0905",
+                "qwen/qwen3-next-80b-a3b-instruct",
+                "anthropic/claude-3.5-sonnet",
+                "openai/gpt-4o-mini",
+                "google/gemini-2.0-flash-exp"
+            ],
+            openRouter: [
+                "deepseek/deepseek-chat-v3.1",
+                "qwen/qwen3-coder",
+                "moonshotai/kimi-k2-0905",
+                "qwen/qwen3-next-80b-a3b-instruct",
+                "anthropic/claude-3.5-sonnet",
+                "openai/gpt-4o-mini",
+                "google/gemini-2.0-flash-exp"
+            ]
+        };
         
-        // Remove duplicates
-        const uniqueModels = allModels.filter((item, index, self) =>
-            index === self.findIndex(t => t.model === item.model)
-        );
+        console.log('Loaded models from configuration:', this.availableModels);
+        this.displayAvailableModels();
         
-        // Display available models in the UI
-        this.renderAvailableModels(uniqueModels);
-        
-        // Create model suggestions dropdown
-        this.createModelSuggestions(uniqueModels);
+        // Show success message for fallback
+        this.displaySuccessMessage('Loaded models from configuration');
     }
 
-    // Render available models as interactive cards
-    renderAvailableModels(models) {
-        const container = document.getElementById('availableModels');
+    // Display available models in separate collapsible sections
+    displayAvailableModels() {
+        this.renderProviderModels('nanoGPT');
+        this.renderProviderModels('openRouter');
+        this.updateProviderCounts();
+    }
+
+    // Render models for specific provider
+    renderProviderModels(provider) {
+        const models = this.availableModels[provider] || [];
+        
+        // Debug: Check what elements actually exist in the DOM
+        console.log(`DEBUG: Looking for ${provider}-models element`);
+        console.log(`DEBUG: All elements with ID containing '${provider}':`,
+            Array.from(document.querySelectorAll(`[id*="${provider}"]`)).map(el => el.id)
+        );
+        
+        // The provider parameter should match the exact IDs in the HTML
+        // Available models are stored as 'nanoGPT' and 'openRouter' but HTML uses 'nanogpt' and 'openrouter'
+        const htmlProviderId = provider === 'nanoGPT' ? 'nanogpt' : 'openrouter';
+        
+        const container = document.getElementById(`${htmlProviderId}-models`);
+        const countElement = document.getElementById(`${htmlProviderId}-count`);
+        
+        // Add defensive programming - check if elements exist
+        if (!container) {
+            console.error(`Container element not found: ${htmlProviderId}-models`);
+            console.error(`DEBUG: Available elements in DOM:`,
+                Array.from(document.querySelectorAll('[id]')).map(el => el.id)
+            );
+            return;
+        }
+        
+        if (!countElement) {
+            console.error(`Count element not found: ${htmlProviderId}-count`);
+        } else {
+            countElement.textContent = `${models.length} models`;
+        }
         
         if (models.length === 0) {
-            container.innerHTML = '<div class="text-slate-400 text-sm">No models available</div>';
+            container.innerHTML = `<div class="text-slate-400 text-sm">No ${provider} models available</div>`;
             return;
         }
         
         container.innerHTML = '';
         
-        models.forEach(item => {
+        models.forEach(model => {
             const modelCard = document.createElement('div');
             modelCard.className = 'model-card bg-slate-700/50 border border-slate-600 rounded-lg p-3 cursor-pointer hover:bg-slate-600/50 transition-all duration-200';
             modelCard.innerHTML = `
-                <div class="font-medium text-white">${item.model}</div>
-                <div class="text-sm text-slate-400">${item.provider}</div>
+                <div class="font-medium text-white">${model}</div>
+                <div class="text-xs text-slate-400 mt-1">${provider}</div>
             `;
-            modelCard.addEventListener('click', () => this.selectModel(item.model));
+            modelCard.addEventListener('click', () => this.selectModel(model));
             container.appendChild(modelCard);
         });
+    }
+
+    // Update provider counts
+    updateProviderCounts() {
+        document.getElementById('nanogpt-count').textContent = `${this.availableModels.nanoGPT?.length || 0} models`;
+        document.getElementById('openrouter-count').textContent = `${this.availableModels.openRouter?.length || 0} models`;
+    }
+
+    // Toggle provider sections
+    toggleProvider(provider) {
+        // Convert to HTML format for element IDs
+        const htmlProviderId = provider === 'nanoGPT' ? 'nanogpt' : 'openrouter';
+        
+        const content = document.getElementById(`${htmlProviderId}-models`);
+        const arrow = document.getElementById(`${htmlProviderId}-arrow`);
+        
+        if (content.classList.contains('max-h-0')) {
+            // Expand
+            content.classList.remove('max-h-0');
+            content.classList.add('max-h-96');
+            arrow.classList.add('rotate-180');
+        } else {
+            // Collapse
+            content.classList.remove('max-h-96');
+            content.classList.add('max-h-0');
+            arrow.classList.remove('rotate-180');
+        }
+    }
+
+    // Render available models as interactive cards
+    renderAvailableModels(models) {
+        // This method is now replaced by renderProviderModels
+        // Kept for backward compatibility
     }
 
     // Select model from available models

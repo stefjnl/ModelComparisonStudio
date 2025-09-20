@@ -352,12 +352,76 @@ body {
   border: 0;
 }
 
-/* Model Suggestions Dropdown */
-.model-suggestions {
-    max-height: 300px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-primary) rgba(15, 23, 42, 0.5);
+/* Provider Collapsible Sections */
+.provider-section {
+    transition: all var(--transition-normal);
+}
+
+.provider-header {
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.provider-header:hover {
+    background-color: rgba(51, 65, 85, 0.5);
+}
+
+.provider-content {
+    transition: max-height var(--transition-normal) ease-in-out;
+}
+
+.provider-content.max-h-0 {
+    max-height: 0;
+}
+
+.provider-content.max-h-96 {
+    max-height: 24rem;
+}
+
+.provider-header svg {
+    transition: transform var(--transition-normal);
+}
+
+.provider-header svg.rotate-180 {
+    transform: rotate(180deg);
+}
+
+/* Provider-specific styling */
+.provider-section[data-provider="openrouter"] {
+    border-left: 4px solid #f97316;
+}
+
+.provider-section[data-provider="nanogpt"] {
+    border-left: 4px solid #8b5cf6;
+}
+
+/* Model cards in provider sections */
+.provider-content .model-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+.provider-content .model-card:hover {
+    background: rgba(30, 41, 59, 0.8);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-modern-sm);
+}
+
+/* Provider section counts */
+#nanogpt-count, #openrouter-count {
+    font-weight: 500;
+}
+
+/* Responsive grid for provider models */
+.provider-content .available-models-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .provider-content .available-models-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .model-suggestions::-webkit-scrollbar {
