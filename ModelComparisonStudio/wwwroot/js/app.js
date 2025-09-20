@@ -8,9 +8,9 @@ class ModelComparisonApp {
             openRouter: []
         };
         this.currentComparison = null;
-        
+
         this.initializeEventListeners();
-        
+
         // Ensure DOM is ready before loading models
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -24,7 +24,7 @@ class ModelComparisonApp {
                 this.loadAvailableModels();
             }, 100); // Small delay for any remaining async operations
         }
-        
+
         this.updateUI();
     }
 
@@ -46,20 +46,21 @@ class ModelComparisonApp {
     // Load available models from backend or fallback to appsettings
     async loadAvailableModels() {
         try {
-            const response = await fetch('/api/models/available');
+            // Use HTTPS port 7047 for API calls to avoid redirect issues
+            const response = await fetch('https://localhost:7047/api/models/available');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
             this.availableModels = {
                 nanoGPT: data.nanoGPT.models || [],
                 openRouter: data.openRouter.models || []
             };
-            
+
             console.log('Loaded models from API:', this.availableModels);
             this.displayAvailableModels();
-            
+
         } catch (error) {
             console.error('Error loading available models from API:', error);
             this.displayErrorMessage('Failed to load available models from API. Loading from configuration.');
@@ -90,10 +91,10 @@ class ModelComparisonApp {
                 "google/gemini-2.0-flash-exp"
             ]
         };
-        
+
         console.log('Loaded models from configuration:', this.availableModels);
         this.displayAvailableModels();
-        
+
         // Show success message for fallback
         this.displaySuccessMessage('Loaded models from configuration');
     }
@@ -108,20 +109,20 @@ class ModelComparisonApp {
     // Render models for specific provider
     renderProviderModels(provider) {
         const models = this.availableModels[provider] || [];
-        
+
         // Debug: Check what elements actually exist in the DOM
         console.log(`DEBUG: Looking for ${provider}-models element`);
         console.log(`DEBUG: All elements with ID containing '${provider}':`,
             Array.from(document.querySelectorAll(`[id*="${provider}"]`)).map(el => el.id)
         );
-        
+
         // The provider parameter should match the exact IDs in the HTML
         // Available models are stored as 'nanoGPT' and 'openRouter' but HTML uses 'nanogpt' and 'openrouter'
         const htmlProviderId = provider === 'nanoGPT' ? 'nanogpt' : 'openrouter';
-        
+
         const container = document.getElementById(`${htmlProviderId}-models`);
         const countElement = document.getElementById(`${htmlProviderId}-count`);
-        
+
         // Add defensive programming - check if elements exist
         if (!container) {
             console.error(`Container element not found: ${htmlProviderId}-models`);
@@ -130,20 +131,20 @@ class ModelComparisonApp {
             );
             return;
         }
-        
+
         if (!countElement) {
             console.error(`Count element not found: ${htmlProviderId}-count`);
         } else {
             countElement.textContent = `${models.length} models`;
         }
-        
+
         if (models.length === 0) {
             container.innerHTML = `<div class="text-slate-400 text-sm">No ${provider} models available</div>`;
             return;
         }
-        
+
         container.innerHTML = '';
-        
+
         models.forEach(model => {
             const modelCard = document.createElement('div');
             modelCard.className = 'model-card bg-slate-700/50 border border-slate-600 rounded-lg p-3 cursor-pointer hover:bg-slate-600/50 transition-all duration-200';
@@ -166,10 +167,10 @@ class ModelComparisonApp {
     toggleProvider(provider) {
         // Convert to HTML format for element IDs
         const htmlProviderId = provider === 'nanoGPT' ? 'nanogpt' : 'openrouter';
-        
+
         const content = document.getElementById(`${htmlProviderId}-models`);
         const arrow = document.getElementById(`${htmlProviderId}-arrow`);
-        
+
         if (content.classList.contains('max-h-0')) {
             // Expand
             content.classList.remove('max-h-0');
@@ -204,7 +205,7 @@ class ModelComparisonApp {
         this.selectedModels.push(modelId);
         this.saveModelsToStorage();
         this.updateUI();
-        
+
         // Show success message
         this.displaySuccessMessage(`Added ${modelId}`);
     }
@@ -215,12 +216,12 @@ class ModelComparisonApp {
         const container = document.createElement('div');
         container.id = 'modelSuggestions';
         container.className = 'model-suggestions hidden absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-modern-lg';
-        
+
         input.parentNode.style.position = 'relative';
         if (input.nextElementSibling?.id === 'modelSuggestions') {
             input.nextElementSibling.remove();
         }
-        
+
         models.forEach(item => {
             const suggestion = document.createElement('div');
             suggestion.className = 'p-3 hover:bg-slate-600 cursor-pointer transition-colors duration-200';
@@ -234,17 +235,17 @@ class ModelComparisonApp {
             });
             container.appendChild(suggestion);
         });
-        
+
         input.parentNode.appendChild(container);
-        
+
         // Show/hide suggestions based on input
         input.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
-            const filtered = models.filter(item => 
-                item.model.toLowerCase().includes(query) || 
+            const filtered = models.filter(item =>
+                item.model.toLowerCase().includes(query) ||
                 item.provider.toLowerCase().includes(query)
             );
-            
+
             if (filtered.length > 0 && query.length > 0) {
                 container.innerHTML = '';
                 filtered.forEach(item => {
@@ -265,7 +266,7 @@ class ModelComparisonApp {
                 container.classList.add('hidden');
             }
         });
-        
+
         // Hide suggestions when clicking outside
         document.addEventListener('click', (e) => {
             if (!container.contains(e.target) && e.target !== input) {
@@ -297,7 +298,7 @@ class ModelComparisonApp {
         errorDiv.className = 'error-message';
         errorDiv.textContent = message;
         container.appendChild(errorDiv);
-        
+
         setTimeout(() => {
             errorDiv.remove();
         }, 3000);
@@ -310,7 +311,7 @@ class ModelComparisonApp {
         successDiv.className = 'success-message';
         successDiv.textContent = message;
         container.appendChild(successDiv);
-        
+
         setTimeout(() => {
             successDiv.remove();
         }, 3000);
@@ -331,7 +332,7 @@ class ModelComparisonApp {
 
     async addModel() {
         const modelId = document.getElementById('modelIdInput').value.trim();
-        
+
         if (!modelId) {
             this.displayErrorMessage('Please enter a model ID');
             return;
@@ -374,31 +375,38 @@ class ModelComparisonApp {
         const prompt = document.getElementById('promptInput').value.trim();
         const hasModels = this.selectedModels.length > 0;
         const hasPrompt = prompt.length > 0;
-        
+
         document.getElementById('runComparisonBtn').disabled = !(hasModels && hasPrompt);
     }
 
     async runComparison() {
         const prompt = document.getElementById('promptInput').value.trim();
-        
+
         if (!prompt || this.selectedModels.length === 0) {
             return;
         }
 
         this.showResultsSection();
         this.prepareResponsePanels();
-        
-        // Simulate API calls for now
-        this.simulateComparison(prompt);
+
+        // Execute real comparison
+        await this.executeRealComparison(prompt);
     }
 
     showResultsSection() {
-        document.getElementById('resultsSection').classList.remove('hidden');
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection) {
+            console.log('DEBUG: Showing results section, removing hidden class');
+            resultsSection.classList.remove('hidden');
+            console.log('DEBUG: Results section classes after removal:', resultsSection.className);
+        } else {
+            console.error('DEBUG: resultsSection element not found!');
+        }
     }
 
     prepareResponsePanels() {
         const panels = document.querySelectorAll('.bg-gray-800.rounded-lg');
-        
+
         panels.forEach((panel, index) => {
             const modelName = this.selectedModels[index] || 'No model selected';
             const header = panel.querySelector('h3');
@@ -410,7 +418,7 @@ class ModelComparisonApp {
             metrics.textContent = '-';
             content.innerHTML = '';
             loading.classList.remove('hidden');
-            
+
             // Clear previous ratings and comments
             const starsContainer = panel.querySelector('.stars');
             const commentArea = panel.querySelector('textarea');
@@ -427,7 +435,7 @@ class ModelComparisonApp {
 
     updateSelectedModelsDisplay() {
         const container = document.getElementById('selectedModels');
-        
+
         if (this.selectedModels.length === 0) {
             container.innerHTML = '<div class="text-slate-400 text-sm">No models selected</div>';
             return;
@@ -449,7 +457,7 @@ class ModelComparisonApp {
     createModelSuggestions(models) {
         const input = document.getElementById('modelIdInput');
         let container = document.getElementById('modelSuggestions');
-        
+
         if (!container) {
             container = document.createElement('div');
             container.id = 'modelSuggestions';
@@ -459,7 +467,7 @@ class ModelComparisonApp {
         }
 
         container.innerHTML = '';
-        
+
         models.forEach(item => {
             const suggestion = document.createElement('div');
             suggestion.className = 'p-3 hover:bg-slate-600/50 cursor-pointer transition-colors duration-200 border-b border-slate-600/30 last:border-b-0';
@@ -477,11 +485,11 @@ class ModelComparisonApp {
         // Show suggestions
         input.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
-            const filtered = models.filter(item => 
-                item.model.toLowerCase().includes(query) || 
+            const filtered = models.filter(item =>
+                item.model.toLowerCase().includes(query) ||
                 item.provider.toLowerCase().includes(query)
             );
-            
+
             if (filtered.length > 0 && query.length > 0) {
                 container.innerHTML = '';
                 filtered.forEach(item => {
@@ -522,9 +530,204 @@ class ModelComparisonApp {
     }
 
     // Comparison methods
+    async executeRealComparison(prompt) {
+        try {
+            // Disable UI during execution
+            this.setComparisonInProgress(true);
+
+            const requestData = {
+                prompt: prompt,
+                selectedModels: this.selectedModels
+            };
+
+            console.log('Starting comparison with models:', this.selectedModels);
+
+            // Use HTTPS port 7047 for API calls to avoid redirect issues
+            const response = await fetch('https://localhost:7047/api/comparison/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const comparisonResult = await response.json();
+            console.log('Comparison completed:', comparisonResult);
+
+            // Display results
+            this.displayComparisonResults(comparisonResult);
+
+        } catch (error) {
+            console.error('Error during comparison:', error);
+            this.displayErrorMessage(`Comparison failed: ${error.message}`);
+            this.setComparisonInProgress(false);
+        }
+    }
+
+    // Set comparison in progress state
+    setComparisonInProgress(inProgress) {
+        const runButton = document.getElementById('runComparisonBtn');
+        const modelSelectors = document.querySelectorAll('.model-card');
+
+        if (inProgress) {
+            runButton.disabled = true;
+            runButton.textContent = 'Running Comparison...';
+            // Disable model selection during execution
+            modelSelectors.forEach(card => {
+                card.style.pointerEvents = 'none';
+                card.style.opacity = '0.5';
+            });
+        } else {
+            runButton.disabled = false;
+            runButton.textContent = 'Run Comparison';
+            // Re-enable model selection
+            modelSelectors.forEach(card => {
+                card.style.pointerEvents = 'auto';
+                card.style.opacity = '1';
+            });
+        }
+    }
+
+    // Display comparison results
+    displayComparisonResults(result) {
+        console.log('DEBUG: displayComparisonResults called with:', result);
+        console.log('DEBUG: Number of results:', result.results.length);
+        
+        // The key insight: we should find the .response-content elements directly,
+        // then work backwards to their parent panels
+        const responseContents = document.querySelectorAll('#resultsSection .response-content');
+        console.log('DEBUG: Direct query for #resultsSection .response-content:', responseContents.length);
+
+        if (responseContents.length === 0) {
+            console.error('DEBUG: No .response-content elements found!');
+            this.displayErrorMessage('No response content areas found in the UI');
+            return;
+        }
+
+        // Use the parent elements of the response-content divs as our panels
+        const panels = Array.from(responseContents).map(content => content.parentElement);
+        console.log(`DEBUG: Found ${panels.length} panels (parents of .response-content)`);
+
+        // Verify we have the right panels by checking they have the expected structure
+        const validPanels = panels.filter(panel => {
+            const hasMetrics = panel.querySelector('.text-sm') !== null;
+            const hasStars = panel.querySelector('.stars') !== null;
+            const hasHeader = panel.querySelector('h3') !== null;
+            console.log(`DEBUG: Panel validation - metrics:${hasMetrics}, stars:${hasStars}, header:${hasHeader}`);
+            return hasMetrics || hasStars || hasHeader; // At least one of these should be present
+        });
+
+        console.log(`DEBUG: Valid panels after structure check: ${validPanels.length}`);
+
+        if (validPanels.length === 0) {
+            console.error('DEBUG: No valid panels found after structure validation!');
+            this.displayErrorMessage('No valid response panels found');
+            return;
+        }
+
+        this.populatePanels(validPanels, result);
+
+        // Re-enable UI
+        this.setComparisonInProgress(false);
+
+        // Show success message
+        this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
+    }
+
+    // Helper method to populate panels
+    populatePanels(panels, result) {
+        result.results.forEach((modelResult, index) => {
+            if (index < panels.length) {
+                const panel = panels[index];
+                const content = panel.querySelector('.response-content');
+                const loading = panel.querySelector('.loading');
+                const metrics = panel.querySelector('.text-sm');
+                const header = panel.querySelector('h3');
+
+                if (!content) {
+                    console.error(`DEBUG: No .response-content found in panel ${index}`);
+                    return;
+                }
+
+                console.log(`DEBUG: Populating panel ${index} with model:`, modelResult.modelId);
+
+                // Update the model name in the header
+                if (header) {
+                    header.textContent = modelResult.modelId;
+                    console.log(`DEBUG: Updated header for panel ${index} to:`, modelResult.modelId);
+                } else {
+                    console.warn(`DEBUG: No h3 header found in panel ${index}`);
+                }
+
+                // Hide loading indicator
+                if (loading) loading.classList.add('hidden');
+
+                // Format and set content with proper styling
+                const formattedResponse = this.formatResponseContent(modelResult.response);
+                content.innerHTML = formattedResponse;
+
+                // Set metrics
+                const timeText = `${(modelResult.responseTimeMs / 1000).toFixed(1)}s`;
+                const tokenText = modelResult.tokenCount ? ` • ${modelResult.tokenCount} tokens` : '';
+                const statusText = modelResult.status === 'success' ? '' : ` • ${modelResult.status}`;
+                if (metrics) {
+                    metrics.textContent = `${timeText}${tokenText}${statusText}`;
+                }
+
+                // Add error styling if failed
+                if (modelResult.status === 'error') {
+                    content.style.color = '#ef4444';
+                    content.style.fontStyle = 'italic';
+                } else {
+                    // Success styling
+                    content.style.color = '#ffffff';
+                    content.style.fontStyle = 'normal';
+                }
+
+                // Add star rating
+                const starsContainer = panel.querySelector('.stars');
+                if (starsContainer) {
+                    starsContainer.innerHTML = this.createStarRating(0);
+                    this.setupStarRating(starsContainer);
+                }
+            } else {
+                console.warn(`DEBUG: No panel available for result index ${index}`);
+            }
+        });
+    }
+
+    // Format response content for better display
+    formatResponseContent(response) {
+        if (!response) return '';
+
+        // Replace line breaks with <br> tags for proper display
+        let formatted = response
+            .replace(/\n\n/g, '</p><p>')  // Double line breaks become paragraphs
+            .replace(/\n/g, '<br>');      // Single line breaks become <br>
+
+        // Handle markdown-style bold text (**text**)
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Handle markdown-style italic text (*text*)
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // Wrap in paragraph tags if it contains multiple lines
+        if (formatted.includes('<br>') || formatted.includes('</p>')) {
+            formatted = '<p>' + formatted + '</p>';
+        }
+
+        return formatted;
+    }
+
+    // Comparison methods
     simulateComparison(prompt) {
         const panels = document.querySelectorAll('.bg-slate-800\\/40');
-        
+
         panels.forEach((panel, index) => {
             if (index < this.selectedModels.length) {
                 setTimeout(() => {
@@ -539,14 +742,14 @@ class ModelComparisonApp {
         const content = panel.querySelector('.response-content');
         const loading = panel.querySelector('.loading');
         const metrics = panel.querySelector('.text-sm');
-        
+
         loading.classList.add('hidden');
-        
+
         const responseText = `This is a simulated response from ${modelName} for the prompt: "${prompt.substring(0, 50)}..."\n\nThis demonstrates how the comparison will work once the API integration is complete. The real implementation will fetch actual responses from both NanoGPT and OpenRouter APIs.`;
-        
+
         content.textContent = responseText;
         metrics.textContent = '2.1s • 128 tokens';
-        
+
         // Add star rating
         const starsContainer = panel.querySelector('.stars');
         starsContainer.innerHTML = this.createStarRating(0);

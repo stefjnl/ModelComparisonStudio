@@ -1,3 +1,6 @@
+using ModelComparisonStudio.Services;
+using ModelComparisonStudio.Configuration;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -5,29 +8,45 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Configure API settings
-builder.Services.Configure<ModelComparisonStudio.Configuration.ApiConfiguration>(
-    builder.Configuration.GetSection("ApiConfiguration"));
+// Register AIService
+builder.Services.AddHttpClient<AIService>();
+builder.Services.AddScoped<AIService>();
 
-// Add API configuration as a singleton for direct access
+// Configure API settings - bind the entire configuration to ApiConfiguration
+builder.Services.Configure<ModelComparisonStudio.Configuration.ApiConfiguration>(
+    builder.Configuration);
+
+// Add API configuration as a singleton for direct access (this will be used by AIService)
 builder.Services.AddSingleton<ModelComparisonStudio.Configuration.ApiConfiguration>(sp =>
 {
     var configuration = builder.Configuration;
-    return new ModelComparisonStudio.Configuration.ApiConfiguration
+    var apiConfig = new ModelComparisonStudio.Configuration.ApiConfiguration();
+    
+    // Bind NanoGPT configuration
+    var nanoGptSection = configuration.GetSection("NanoGPT");
+    if (nanoGptSection.Exists())
     {
-        NanoGPT = new ModelComparisonStudio.Configuration.NanoGPTConfiguration
+        apiConfig.NanoGPT = new ModelComparisonStudio.Configuration.NanoGPTConfiguration
         {
-            ApiKey = configuration["NanoGPT:ApiKey"] ?? string.Empty,
-            BaseUrl = configuration["NanoGPT:BaseUrl"] ?? "https://api.nano-gpt.com",
-            AvailableModels = configuration.GetSection("NanoGPT:AvailableModels").Get<string[]>() ?? Array.Empty<string>()
-        },
-        OpenRouter = new ModelComparisonStudio.Configuration.OpenRouterConfiguration
+            ApiKey = nanoGptSection["ApiKey"] ?? string.Empty,
+            BaseUrl = nanoGptSection["BaseUrl"] ?? "https://api.nano-gpt.com",
+            AvailableModels = nanoGptSection.GetSection("AvailableModels").Get<string[]>() ?? Array.Empty<string>()
+        };
+    }
+    
+    // Bind OpenRouter configuration
+    var openRouterSection = configuration.GetSection("OpenRouter");
+    if (openRouterSection.Exists())
+    {
+        apiConfig.OpenRouter = new ModelComparisonStudio.Configuration.OpenRouterConfiguration
         {
-            ApiKey = configuration["OpenRouter:ApiKey"] ?? string.Empty,
-            BaseUrl = configuration["OpenRouter:BaseUrl"] ?? "https://openrouter.ai/api/v1",
-            AvailableModels = configuration.GetSection("OpenRouter:AvailableModels").Get<string[]>() ?? Array.Empty<string>()
-        }
-    };
+            ApiKey = openRouterSection["ApiKey"] ?? string.Empty,
+            BaseUrl = openRouterSection["BaseUrl"] ?? "https://openrouter.ai/api/v1",
+            AvailableModels = openRouterSection.GetSection("AvailableModels").Get<string[]>() ?? Array.Empty<string>()
+        };
+    }
+    
+    return apiConfig;
 });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
