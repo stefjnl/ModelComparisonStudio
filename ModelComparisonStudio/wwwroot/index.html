@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Model Comparison Studio</title>
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Google Fonts - Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- Custom CSS -->
     <link href="css/styles.css" rel="stylesheet">
 </head>
+
 <body class="bg-slate-900 text-white font-inter overflow-x-hidden">
-    
+
     <!-- Animated Gradient Background -->
     <div class="fixed inset-0 -z-10">
-        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-x"></div>
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-x">
+        </div>
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-3xl"></div>
     </div>
 
@@ -44,59 +48,70 @@
     <!-- Main Layout Container -->
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
+
             <!-- Left Sidebar - Model Selection -->
             <aside class="lg:col-span-3 space-y-6">
-                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                <div
+                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
                     <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
                         <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
                         Model Selection
                     </h2>
-                    
+
                     <!-- Add Model Button -->
-                    <button id="addModelBtn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg">
+                    <button id="addModelBtn"
+                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg">
                         <span class="flex items-center justify-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
                             </svg>
                             Add Model
                         </span>
                     </button>
-                    
+
                     <!-- Model Input Form -->
                     <div id="modelInputForm" class="hidden mt-4 space-y-3">
-                        <input type="text" id="modelIdInput" placeholder="provider/model-name" 
-                               class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
+                        <input type="text" id="modelIdInput" placeholder="provider/model-name"
+                            class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
                         <div class="flex gap-2">
-                            <button id="addModelConfirm" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
+                            <button id="addModelConfirm"
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
                                 Add
                             </button>
-                            <button id="cancelAddModel" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
+                            <button id="cancelAddModel"
+                                class="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
                                 Cancel
                             </button>
                         </div>
                     </div>
-                    
+
                     <!-- Available Models Display -->
                     <div class="available-models-section space-y-4">
                         <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
                             <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
                             Available Models
                         </h3>
-                        
+
                         <!-- OpenRouter Models Section -->
-                        <div class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
-                            <button class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200" onclick="app.toggleProvider('openrouter')">
+                        <div
+                            class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
+                            <button
+                                class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200"
+                                onclick="app.toggleProvider('openrouter')">
                                 <div class="flex items-center">
                                     <span class="w-3 h-3 bg-orange-500 rounded-full mr-3"></span>
                                     <span class="font-semibold text-white">OpenRouter</span>
                                     <span class="ml-2 text-slate-400 text-sm" id="openrouter-count">7 models</span>
                                 </div>
-                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200" id="openrouter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
+                                    id="openrouter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
-                            <div id="openrouter-models" class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                            <div id="openrouter-models"
+                                class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                                 <div class="p-4 pt-0">
                                     <div id="openrouterModels" class="available-models-grid">
                                         <div class="text-slate-400 text-sm">Loading OpenRouter models...</div>
@@ -104,20 +119,26 @@
                                 </div>
                             </div>
                         </div>
-        
+
                         <!-- NanoGPT Models Section -->
-                        <div class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
-                            <button class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200" onclick="app.toggleProvider('nanogpt')">
+                        <div
+                            class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
+                            <button
+                                class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200"
+                                onclick="app.toggleProvider('nanogpt')">
                                 <div class="flex items-center">
                                     <span class="w-3 h-3 bg-purple-500 rounded-full mr-3"></span>
                                     <span class="font-semibold text-white">NanoGPT</span>
                                     <span class="ml-2 text-slate-400 text-sm" id="nanogpt-count">7 models</span>
                                 </div>
-                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200" id="nanogpt-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
+                                    id="nanogpt-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </button>
-                            <div id="nanogpt-models" class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                            <div id="nanogpt-models"
+                                class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
                                 <div class="p-4 pt-0">
                                     <div id="nanogptModels" class="available-models-grid">
                                         <div class="text-slate-400 text-sm">Loading NanoGPT models...</div>
@@ -126,7 +147,7 @@
                             </div>
                         </div>
                     </div>
-        
+
                     <!-- Selected Models -->
                     <div id="selectedModels" class="mt-6 space-y-3">
                         <div class="text-slate-400 text-sm">No models selected</div>
@@ -136,24 +157,25 @@
 
             <!-- Main Content Area -->
             <div class="lg:col-span-9 space-y-6">
-                
+
                 <!-- Prompt Input Section -->
-                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                <div
+                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
                     <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
                         <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
                         Test Prompt
                     </h2>
-                    
-                    <textarea id="promptInput" 
-                             placeholder="Enter your test prompt here... Describe what you want to test or ask the models..."
-                             class="w-full h-32 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"></textarea>
-                    
-                    <button id="runComparisonBtn" 
-                           disabled
-                           class="mt-4 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+
+                    <textarea id="promptInput"
+                        placeholder="Enter your test prompt here... Describe what you want to test or ask the models..."
+                        class="w-full h-32 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"></textarea>
+
+                    <button id="runComparisonBtn" disabled
+                        class="mt-4 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                         <span class="flex items-center justify-center">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>
                             Run Comparison
                         </span>
@@ -166,58 +188,10 @@
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
                         Comparison Results
                     </h2>
-                    
-                    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                        <!-- Model 1 Panel -->
-                        <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-purple-300 text-lg">Model 1</h3>
-                                <div class="text-sm text-slate-400 font-mono">-</div>
-                            </div>
-                            <div class="response-content bg-slate-900/50 rounded-xl p-4 min-h-32 text-slate-300 font-mono text-sm leading-relaxed">
-                                <div class="loading hidden">Loading...</div>
-                            </div>
-                            <div class="mt-4 space-y-4">
-                                <div class="rating-section">
-                                    <div class="stars flex gap-1"></div>
-                                    <textarea placeholder="Comments..." class="w-full mt-3 p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"></textarea>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Model 2 Panel -->
-                        <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-purple-300 text-lg">Model 2</h3>
-                                <div class="text-sm text-slate-400 font-mono">-</div>
-                            </div>
-                            <div class="response-content bg-slate-900/50 rounded-xl p-4 min-h-32 text-slate-300 font-mono text-sm leading-relaxed">
-                                <div class="loading hidden">Loading...</div>
-                            </div>
-                            <div class="mt-4 space-y-4">
-                                <div class="rating-section">
-                                    <div class="stars flex gap-1"></div>
-                                    <textarea placeholder="Comments..." class="w-full mt-3 p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"></textarea>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Model 3 Panel -->
-                        <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-purple-300 text-lg">Model 3</h3>
-                                <div class="text-sm text-slate-400 font-mono">-</div>
-                            </div>
-                            <div class="response-content bg-slate-900/50 rounded-xl p-4 min-h-32 text-slate-300 font-mono text-sm leading-relaxed">
-                                <div class="loading hidden">Loading...</div>
-                            </div>
-                            <div class="mt-4 space-y-4">
-                                <div class="rating-section">
-                                    <div class="stars flex gap-1"></div>
-                                    <textarea placeholder="Comments..." class="w-full mt-3 p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"></textarea>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Vertical Stack Layout for Model Comparisons -->
+                    <div id="comparisonResults" class="space-y-8">
+                        <!-- Model panels will be dynamically inserted here -->
                     </div>
                 </div>
             </div>
@@ -251,17 +225,34 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        .shadow-modern-sm { box-shadow: var(--shadow-modern-sm); }
-        .shadow-modern-md { box-shadow: var(--shadow-modern-md); }
-        .shadow-modern-lg { box-shadow: var(--shadow-modern-lg); }
-        .shadow-modern-xl { box-shadow: var(--shadow-modern-xl); }
-        .shadow-modern-2xl { box-shadow: var(--shadow-modern-2xl); }
+        .shadow-modern-sm {
+            box-shadow: var(--shadow-modern-sm);
+        }
+
+        .shadow-modern-md {
+            box-shadow: var(--shadow-modern-md);
+        }
+
+        .shadow-modern-lg {
+            box-shadow: var(--shadow-modern-lg);
+        }
+
+        .shadow-modern-xl {
+            box-shadow: var(--shadow-modern-xl);
+        }
+
+        .shadow-modern-2xl {
+            box-shadow: var(--shadow-modern-2xl);
+        }
 
         @keyframes gradient-x {
-            0%, 100% {
+
+            0%,
+            100% {
                 background-size: 200% 200%;
                 background-position: left center;
             }
+
             50% {
                 background-size: 200% 200%;
                 background-position: right center;
@@ -297,4 +288,5 @@
 
     <script src="js/app.js"></script>
 </body>
+
 </html>

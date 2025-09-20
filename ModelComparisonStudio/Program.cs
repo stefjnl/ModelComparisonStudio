@@ -8,6 +8,18 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add CORS to allow frontend requests
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:7047", "http://localhost:5211")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 // Register AIService
 builder.Services.AddHttpClient<AIService>();
 builder.Services.AddScoped<AIService>();
@@ -63,6 +75,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Add CORS middleware
+app.UseCors("AllowFrontend");
 
 // Serve default file (index.html) when no specific file is requested
 app.UseDefaultFiles();

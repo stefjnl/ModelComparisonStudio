@@ -597,46 +597,107 @@ class ModelComparisonApp {
     displayComparisonResults(result) {
         console.log('DEBUG: displayComparisonResults called with:', result);
         console.log('DEBUG: Number of results:', result.results.length);
-        
-        // The key insight: we should find the .response-content elements directly,
-        // then work backwards to their parent panels
-        const responseContents = document.querySelectorAll('#resultsSection .response-content');
-        console.log('DEBUG: Direct query for #resultsSection .response-content:', responseContents.length);
 
-        if (responseContents.length === 0) {
-            console.error('DEBUG: No .response-content elements found!');
-            this.displayErrorMessage('No response content areas found in the UI');
+        // Clear existing results
+        const resultsContainer = document.getElementById('comparisonResults');
+        if (!resultsContainer) {
+            console.error('DEBUG: comparisonResults container not found!');
+            this.displayErrorMessage('Results container not found in the UI');
             return;
         }
 
-        // Use the parent elements of the response-content divs as our panels
-        const panels = Array.from(responseContents).map(content => content.parentElement);
-        console.log(`DEBUG: Found ${panels.length} panels (parents of .response-content)`);
+        resultsContainer.innerHTML = '';
 
-        // Verify we have the right panels by checking they have the expected structure
-        const validPanels = panels.filter(panel => {
-            const hasMetrics = panel.querySelector('.text-sm') !== null;
-            const hasStars = panel.querySelector('.stars') !== null;
-            const hasHeader = panel.querySelector('h3') !== null;
-            console.log(`DEBUG: Panel validation - metrics:${hasMetrics}, stars:${hasStars}, header:${hasHeader}`);
-            return hasMetrics || hasStars || hasHeader; // At least one of these should be present
+        // Create vertical stack layout for each model result
+        result.results.forEach((modelResult, index) => {
+            const modelPanel = this.createModelPanel(modelResult, index);
+            resultsContainer.appendChild(modelPanel);
         });
-
-        console.log(`DEBUG: Valid panels after structure check: ${validPanels.length}`);
-
-        if (validPanels.length === 0) {
-            console.error('DEBUG: No valid panels found after structure validation!');
-            this.displayErrorMessage('No valid response panels found');
-            return;
-        }
-
-        this.populatePanels(validPanels, result);
 
         // Re-enable UI
         this.setComparisonInProgress(false);
 
         // Show success message
         this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
+    }
+
+    // Create a single model panel for the vertical layout
+    createModelPanel(modelResult, index) {
+        const panel = document.createElement('div');
+        panel.className = 'bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl hover:shadow-modern-2xl transition-all duration-300';
+
+        // Create star rating HTML
+        const starRatingHtml = this.createStarRating(0);
+
+        panel.innerHTML = `
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
+                <h3 class="font-semibold text-purple-300 text-lg">${modelResult.modelId}</h3>
+                <div class="flex items-center gap-2">
+                    <div class="text-sm text-slate-400 font-mono">-</div>
+                    <div class="star-rating flex gap-1">
+                        ${starRatingHtml}
+                    </div>
+                </div>
+            </div>
+            <div class="response-content bg-slate-900/50 rounded-xl p-4 min-h-32 text-slate-300 font-mono text-sm leading-relaxed mb-4">
+                <div class="loading hidden">Loading...</div>
+            </div>
+            <div class="space-y-4">
+                <div class="rating-section">
+                    <textarea placeholder="Add your comments about this model's response..." class="w-full p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"></textarea>
+                </div>
+            </div>
+        `;
+
+        // Populate the panel with actual data
+        this.populateModelPanel(panel, modelResult);
+
+        return panel;
+    }
+
+    // Populate a single model panel with data
+    populateModelPanel(panel, modelResult) {
+        const content = panel.querySelector('.response-content');
+        const loading = panel.querySelector('.loading');
+        const metrics = panel.querySelector('.text-sm');
+
+        if (!content) {
+            console.error('DEBUG: No .response-content found in panel');
+            return;
+        }
+
+        console.log(`DEBUG: Populating panel with model:`, modelResult.modelId);
+
+        // Hide loading indicator
+        if (loading) loading.classList.add('hidden');
+
+        // Format and set content with proper styling
+        const formattedResponse = this.formatResponseContent(modelResult.response);
+        content.innerHTML = formattedResponse;
+
+        // Set metrics
+        const timeText = `${(modelResult.responseTimeMs / 1000).toFixed(1)}s`;
+        const tokenText = modelResult.tokenCount ? ` • ${modelResult.tokenCount} tokens` : '';
+        const statusText = modelResult.status === 'success' ? '' : ` • ${modelResult.status}`;
+        if (metrics) {
+            metrics.textContent = `${timeText}${tokenText}${statusText}`;
+        }
+
+        // Add error styling if failed
+        if (modelResult.status === 'error') {
+            content.style.color = '#ef4444';
+            content.style.fontStyle = 'italic';
+        } else {
+            // Success styling
+            content.style.color = '#ffffff';
+            content.style.fontStyle = 'normal';
+        }
+
+        // Set up star rating interaction
+        const starsContainer = panel.querySelector('.star-rating');
+        if (starsContainer) {
+            this.setupStarRating(starsContainer);
+        }
     }
 
     // Helper method to populate panels
