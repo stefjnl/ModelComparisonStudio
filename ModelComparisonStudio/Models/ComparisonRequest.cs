@@ -11,7 +11,7 @@ namespace ModelComparisonStudio.Models
         /// The prompt to send to all models
         /// </summary>
         [Required(ErrorMessage = "Prompt is required")]
-        [StringLength(10000, MinimumLength = 1, ErrorMessage = "Prompt must be between 1 and 10000 characters")]
+        [StringLength(50000, MinimumLength = 1, ErrorMessage = "Prompt must be between 1 and 50000 characters")]
         public string Prompt { get; set; } = string.Empty;
 
         /// <summary>
