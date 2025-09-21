@@ -143,6 +143,19 @@ public class Evaluation
     }
 
     /// <summary>
+    /// Updates the response time and token count for this evaluation.
+    /// </summary>
+    /// <param name="responseTimeMs">The new response time in milliseconds.</param>
+    /// <param name="tokenCount">The new token count.</param>
+    public void UpdateResponseTimeAndTokenCount(long responseTimeMs, int? tokenCount = null)
+    {
+        ResponseTimeMs = responseTimeMs;
+        TokenCount = tokenCount;
+        UpdatedAt = DateTime.UtcNow;
+        IsSaved = false;
+    }
+
+    /// <summary>
     /// Marks the evaluation as saved to persistent storage.
     /// </summary>
     public void MarkAsSaved()

@@ -294,7 +294,15 @@ public class EvaluationApplicationService
             if (existingEvaluation != null)
             {
                 // Update existing evaluation
-                _logger.LogInformation("Updating existing evaluation {EvaluationId}", existingEvaluation.Id);
+                _logger.LogInformation("Updating existing evaluation {EvaluationId}. Current ResponseTimeMs: {CurrentResponseTimeMs}",
+                    existingEvaluation.Id, existingEvaluation.ResponseTimeMs);
+
+                // Update response time and token count (these are not updated by the UpdateRating/UpdateComment methods)
+                _logger.LogDebug("Updating ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount} for evaluation {EvaluationId}",
+                    dto.ResponseTimeMs, dto.TokenCount, existingEvaluation.Id);
+                existingEvaluation.UpdateResponseTimeAndTokenCount(dto.ResponseTimeMs, dto.TokenCount);
+                _logger.LogDebug("After update - ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+                    existingEvaluation.ResponseTimeMs, existingEvaluation.TokenCount);
 
                 // Update rating if provided
                 if (dto.Rating.HasValue)
@@ -316,8 +324,8 @@ public class EvaluationApplicationService
             else
             {
                 // Create new evaluation
-                _logger.LogInformation("Creating new evaluation for model {ModelId} with prompt {PromptId}",
-                    dto.ModelId, dto.PromptId);
+                _logger.LogInformation("Creating new evaluation for model {ModelId} with prompt {PromptId}, ResponseTimeMs: {ResponseTimeMs}",
+                    dto.ModelId, dto.PromptId, dto.ResponseTimeMs);
 
                 var evaluation = Evaluation.Create(
                     dto.PromptId,

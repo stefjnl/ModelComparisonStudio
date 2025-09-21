@@ -514,4 +514,30 @@ public class EvaluationController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Gets the raw database content for debugging purposes.
+    /// </summary>
+    [HttpGet("debug/database-content")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDatabaseContent(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var evaluations = await _evaluationService.GetAllEvaluationsAsync(0, 100, cancellationToken);
+            
+            var result = $"Total evaluations: {evaluations.Count}\n";
+            foreach (var eval in evaluations)
+            {
+                result += $"ID: {eval.Id}, PromptId: {eval.PromptId}, ModelId: {eval.ModelId}, ResponseTimeMs: {eval.ResponseTimeMs}, TokenCount: {eval.TokenCount}, Rating: {eval.Rating}, UpdatedAt: {eval.UpdatedAt}\n";
+            }
+            
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting database content");
+            return StatusCode(500, "Error retrieving database content");
+        }
+    }
 }
