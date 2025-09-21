@@ -3,9 +3,19 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using ModelComparisonStudio.Configuration;
 
 namespace ModelComparisonStudio.Services
 {
+    /// <summary>
+    /// Constants for AI provider names
+    /// </summary>
+    public static class AIProviderNames
+    {
+        public const string OpenRouter = "OpenRouter";
+        public const string NanoGPT = "NanoGPT";
+    }
+
     /// <summary>
     /// Service for interacting with AI models from multiple providers
     /// </summary>
@@ -119,28 +129,51 @@ namespace ModelComparisonStudio.Services
                 _logger.LogInformation("Request JSON: {RequestJson}", jsonRequest);
                 var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
-                // Set up headers
+                // Set up headers with proper error handling
                 _logger.LogInformation("Setting up HTTP headers for {Provider} API call", provider);
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-                
-                // Add provider-specific headers
-                if (provider == "OpenRouter")
+                try
                 {
-                    _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
-                    _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
-                    _httpClient.DefaultRequestHeaders.Accept.Clear();
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    _httpClient.DefaultRequestHeaders.Clear();
+                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                    
+                    // Add provider-specific headers
+                    if (provider == AIProviderNames.OpenRouter)
+                    {
+                        _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
+                        _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
+                        _httpClient.DefaultRequestHeaders.Accept.Clear();
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    }
+                    else if (provider == AIProviderNames.NanoGPT)
+                    {
+                        // NanoGPT requires text/event-stream accept header
+                        _httpClient.DefaultRequestHeaders.Accept.Clear();
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                    }
+                    
+                    _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], Accept: {AcceptHeader}",
+                        _httpClient.DefaultRequestHeaders.Accept.ToString());
                 }
-                else if (provider == "NanoGPT")
+                catch (ArgumentException aex)
                 {
-                    // NanoGPT requires text/event-stream accept header
-                    _httpClient.DefaultRequestHeaders.Accept.Clear();
-                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                    _logger.LogError(aex, "Invalid header configuration for {Provider}: {ErrorMessage}", provider, aex.Message);
+                    throw new InvalidOperationException($"Invalid header configuration: {aex.Message}", aex);
                 }
-                
-                _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], Accept: {AcceptHeader}",
-                    _httpClient.DefaultRequestHeaders.Accept.ToString());
+                catch (FormatException fex)
+                {
+                    _logger.LogError(fex, "Invalid header format for {Provider}: {ErrorMessage}", provider, fex.Message);
+                    throw new InvalidOperationException($"Invalid header format: {fex.Message}", fex);
+                }
+                catch (InvalidOperationException ioex)
+                {
+                    _logger.LogError(ioex, "Invalid operation while setting headers for {Provider}: {ErrorMessage}", provider, ioex.Message);
+                    throw new InvalidOperationException($"Failed to set headers: {ioex.Message}", ioex);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected error setting headers for {Provider}: {ErrorMessage}", provider, ex.Message);
+                    throw new InvalidOperationException($"Failed to configure HTTP headers: {ex.Message}", ex);
+                }
 
                 // Make the API call with enhanced error handling and detailed logging
                 _logger.LogInformation("=== API Request Details ===");
@@ -469,7 +502,7 @@ namespace ModelComparisonStudio.Services
             if (isInNanoGPT)
             {
                 _logger.LogInformation("Model {ModelId} assigned to NanoGPT provider", modelId);
-                return ("NanoGPT", _apiConfiguration.NanoGPT?.ApiKey ?? string.Empty, _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty);
+                return (AIProviderNames.NanoGPT, _apiConfiguration.NanoGPT?.ApiKey ?? string.Empty, _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty);
             }
 
             // Determine provider based on model ID patterns
@@ -477,7 +510,7 @@ namespace ModelComparisonStudio.Services
             if (modelId.Contains(":free"))
             {
                 _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider (free model)", modelId);
-                return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
+                return (AIProviderNames.OpenRouter, _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
             }
 
             // Check if model is in OpenRouter's available models (case-insensitive)
@@ -487,13 +520,13 @@ namespace ModelComparisonStudio.Services
             if (isInOpenRouter)
             {
                 _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider", modelId);
-                return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
+                return (AIProviderNames.OpenRouter, _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
             }
 
             // If model is not found in either provider, log warning and default to OpenRouter
             _logger.LogWarning("Model {ModelId} not found in configured providers, defaulting to OpenRouter", modelId);
             _logger.LogInformation("=== GetProviderInfo Debug End ===");
-            return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
+            return (AIProviderNames.OpenRouter, _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
         }
 
         /// <summary>

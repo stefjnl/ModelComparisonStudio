@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using ModelComparisonStudio.Services;
+using Microsoft.Extensions.Options;
+using ModelComparisonStudio.Configuration;
 
 namespace ModelComparisonStudio.Controllers
 {
@@ -10,9 +11,9 @@ namespace ModelComparisonStudio.Controllers
         private readonly ApiConfiguration _apiConfiguration;
         private readonly ILogger<ModelsController> _logger;
 
-        public ModelsController(ApiConfiguration apiConfiguration, ILogger<ModelsController> logger)
+        public ModelsController(IOptions<ApiConfiguration> apiConfiguration, ILogger<ModelsController> logger)
         {
-            _apiConfiguration = apiConfiguration;
+            _apiConfiguration = apiConfiguration.Value;
             _logger = logger;
         }
 

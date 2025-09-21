@@ -1,3 +1,4 @@
+using ModelComparisonStudio.Configuration;
 using ModelComparisonStudio.Services;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -43,43 +44,8 @@ builder.Services.AddHttpClient<AIService>(client =>
 });
 builder.Services.AddScoped<AIService>();
 
-// Configure API settings - bind the entire configuration to ApiConfiguration
-// Configure API settings - bind the entire configuration to ApiConfiguration
-builder.Services.Configure<ApiConfiguration>(
-    builder.Configuration);
-
-// Add API configuration as a singleton for direct access (this will be used by AIService)
-builder.Services.AddSingleton<ApiConfiguration>(sp =>
-{
-    var configuration = builder.Configuration;
-    var apiConfig = new ApiConfiguration();
-    
-    // Bind NanoGPT configuration
-    var nanoGptSection = configuration.GetSection("NanoGPT");
-    if (nanoGptSection.Exists())
-    {
-        apiConfig.NanoGPT = new NanoGPTConfiguration
-        {
-            ApiKey = nanoGptSection["ApiKey"] ?? string.Empty,
-            BaseUrl = nanoGptSection["BaseUrl"] ?? "https://nano-gpt.com/api/v1",
-            AvailableModels = nanoGptSection.GetSection("AvailableModels").Get<string[]>() ?? Array.Empty<string>()
-        };
-    }
-    
-    // Bind OpenRouter configuration
-    var openRouterSection = configuration.GetSection("OpenRouter");
-    if (openRouterSection.Exists())
-    {
-        apiConfig.OpenRouter = new OpenRouterConfiguration
-        {
-            ApiKey = openRouterSection["ApiKey"] ?? string.Empty,
-            BaseUrl = openRouterSection["BaseUrl"] ?? "https://openrouter.ai/api/v1",
-            AvailableModels = openRouterSection.GetSection("AvailableModels").Get<string[]>() ?? Array.Empty<string>()
-        };
-    }
-    
-    return apiConfig;
-});
+// Configure API settings using IOptions pattern - bind the entire configuration to ApiConfiguration
+builder.Services.Configure<ApiConfiguration>(builder.Configuration);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

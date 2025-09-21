@@ -1,4 +1,4 @@
-namespace ModelComparisonStudio.Services
+namespace ModelComparisonStudio.Configuration
 {
     public class ApiConfiguration
     {
