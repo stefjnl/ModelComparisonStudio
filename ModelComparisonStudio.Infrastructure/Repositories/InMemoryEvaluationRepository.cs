@@ -215,11 +215,36 @@ public class InMemoryEvaluationRepository : IEvaluationRepository
     }
 
     /// <summary>
+    /// Gets all evaluations without pagination (for statistics and reporting).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>All evaluations in the repository.</returns>
+    public Task<IReadOnlyList<Evaluation>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var evaluations = _evaluations.Values
+            .OrderByDescending(e => e.CreatedAt)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Evaluation>>(evaluations);
+    }
+
+    /// <summary>
     /// Clears all evaluations from the repository (for testing purposes).
     /// </summary>
     public void Clear()
     {
         _evaluations.Clear();
         _totalCount = 0;
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Evaluation>> GetAllSinceAsync(DateTime sinceDate, CancellationToken cancellationToken = default)
+    {
+        var evaluations = _evaluations.Values
+            .Where(e => e.CreatedAt >= sinceDate)
+            .OrderByDescending(e => e.CreatedAt)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Evaluation>>(evaluations);
     }
 }

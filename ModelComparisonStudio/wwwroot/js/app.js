@@ -55,6 +55,9 @@ class ModelComparisonApp {
 
         // Sidebar toggle functionality
         this.initializeSidebarToggle();
+
+        // Ranking system controls
+        this.setupRankingControls();
     }
 
     // Initialize sidebar toggle functionality
@@ -921,14 +924,14 @@ class ModelComparisonApp {
             const modelId = starsContainer.getAttribute('data-model-id');
             const promptId = starsContainer.getAttribute('data-prompt-id');
             const promptText = starsContainer.getAttribute('data-prompt-text');
-            
+
             // Check if we already have an evaluation for this model/prompt
             const evaluationKey = `${promptId}_${modelId}`;
             if (this.evaluations.has(evaluationKey)) {
                 const evaluation = this.evaluations.get(evaluationKey);
                 this.updateStarRatingUI(starsContainer, evaluation.rating || 0);
             }
-            
+
             this.setupStarRating(starsContainer, modelId, promptId, promptText);
         }
 
@@ -937,14 +940,14 @@ class ModelComparisonApp {
             const modelId = commentTextarea.getAttribute('data-model-id');
             const promptId = commentTextarea.getAttribute('data-prompt-id');
             const promptText = commentTextarea.getAttribute('data-prompt-text');
-            
+
             // Load existing comment if available
             const evaluationKey = `${promptId}_${modelId}`;
             if (this.evaluations.has(evaluationKey)) {
                 const evaluation = this.evaluations.get(evaluationKey);
                 commentTextarea.value = evaluation.comment || '';
             }
-            
+
             this.setupCommentSystem(commentTextarea, modelId, promptId, promptText);
         }
     }
@@ -1088,13 +1091,13 @@ class ModelComparisonApp {
     async handleRatingChange(modelId, promptId, promptText, rating, container) {
         // Update UI immediately for better UX
         this.updateStarRatingUI(container, rating);
-        
+
         // Create or update evaluation
         const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
         evaluation.rating = rating;
         evaluation.saved = false;
         this.unsavedChanges = true;
-        
+
         // Save to backend
         await this.saveEvaluation(evaluation, container);
     }
@@ -1198,7 +1201,7 @@ class ModelComparisonApp {
             star.style.opacity = '0.7';
             star.style.cursor = 'wait';
         });
-        
+
         // Add saving indicator
         let savingIndicator = container.querySelector('.saving-indicator');
         if (!savingIndicator) {
@@ -1215,13 +1218,13 @@ class ModelComparisonApp {
             star.style.opacity = '1';
             star.style.cursor = 'pointer';
         });
-        
+
         // Update saving indicator to saved
         const savingIndicator = container.querySelector('.saving-indicator');
         if (savingIndicator) {
             savingIndicator.textContent = 'Saved ✓';
             savingIndicator.className = 'saving-indicator text-xs text-green-400 mt-1';
-            
+
             // Remove after 2 seconds
             setTimeout(() => {
                 if (savingIndicator.parentNode) {
@@ -1237,28 +1240,28 @@ class ModelComparisonApp {
             star.style.opacity = '1';
             star.style.cursor = 'pointer';
         });
-        
+
         // Show error indicator
         let errorIndicator = container.querySelector('.error-indicator');
         if (!errorIndicator) {
             errorIndicator = document.createElement('div');
             errorIndicator.className = 'error-indicator text-xs text-red-400 mt-1';
             errorIndicator.style.cursor = 'pointer';
-            
+
             errorIndicator.addEventListener('click', () => {
                 const modelId = container.getAttribute('data-model-id');
                 const promptId = container.getAttribute('data-prompt-id');
                 const promptText = container.getAttribute('data-prompt-text');
                 const rating = parseInt(container.getAttribute('data-current-rating'));
-                
+
                 if (modelId && promptId && promptText && rating) {
                     this.handleRatingChange(modelId, promptId, promptText, rating, container);
                 }
             });
-            
+
             container.appendChild(errorIndicator);
         }
-        
+
         // Update error message if provided
         if (errorMessage) {
             errorIndicator.textContent = `Error: ${errorMessage} - click to retry`;
@@ -1285,7 +1288,7 @@ class ModelComparisonApp {
 
     handleCommentChange(textarea, modelId, promptId, promptText) {
         const comment = textarea.value.trim();
-        
+
         // Clear existing timer
         const key = `${promptId}_${modelId}_comment`;
         if (this.commentDebounceTimers.has(key)) {
@@ -1312,7 +1315,7 @@ class ModelComparisonApp {
     handleCommentBlur(textarea, modelId, promptId, promptText) {
         const comment = textarea.value.trim();
         const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
-        
+
         if (comment !== evaluation.comment) {
             evaluation.comment = comment;
             evaluation.saved = false;
@@ -1389,7 +1392,7 @@ class ModelComparisonApp {
         if (indicator) {
             indicator.textContent = 'Saved ✓';
             indicator.className = 'comment-saving-indicator text-xs text-green-400 mt-1';
-            
+
             setTimeout(() => {
                 if (indicator.parentNode) {
                     indicator.remove();
@@ -1407,13 +1410,13 @@ class ModelComparisonApp {
                 indicator.textContent = 'Error saving - click to retry';
             }
             indicator.className = 'comment-saving-indicator text-xs text-red-400 mt-1 cursor-pointer';
-            
+
             indicator.addEventListener('click', () => {
                 const modelId = textarea.getAttribute('data-model-id');
                 const promptId = textarea.getAttribute('data-prompt-id');
                 const promptText = textarea.getAttribute('data-prompt-text');
                 const comment = textarea.value.trim();
-                
+
                 if (modelId && promptId && promptText) {
                     const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
                     evaluation.comment = comment;
@@ -1421,6 +1424,324 @@ class ModelComparisonApp {
                 }
             });
         }
+    }
+
+    // Ranking system methods
+    showRankingDashboard() {
+        // Hide other sections
+        document.getElementById('resultsSection').classList.add('hidden');
+
+        // Show ranking dashboard
+        const rankingDashboard = document.getElementById('rankingDashboard');
+        if (rankingDashboard) {
+            rankingDashboard.classList.remove('hidden');
+            // Load ranking data
+            this.loadRankingData('all', 'rating');
+        }
+    }
+
+    // Load ranking data from the backend
+    async loadRankingData(timeFilter = 'all', sortBy = 'rating') {
+        try {
+            const baseUrl = window.location.origin;
+            const endpoint = timeFilter === 'all'
+                ? `${baseUrl}/api/evaluations/statistics/all`
+                : `${baseUrl}/api/evaluations/statistics?timeframe=${timeFilter}`;
+            
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const rankingData = await response.json();
+            console.log('Ranking data loaded:', rankingData);
+            this.displayRankingData(rankingData, sortBy);
+
+        } catch (error) {
+            console.error('Error loading ranking data:', error);
+            this.displayRankingError('Failed to load ranking data');
+        }
+    }
+
+    // Display ranking data with sorting and filtering
+    displayRankingData(data, sortBy) {
+        const container = document.getElementById('rankingLeaderboard');
+
+        if (!container) {
+            console.error('Ranking leaderboard container not found');
+            return;
+        }
+
+        // Sort data based on criteria
+        const sortedData = this.sortRankingData(data, sortBy);
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        if (sortedData.length === 0) {
+            container.innerHTML = '<div class="text-slate-400 text-center py-8">No ranking data available</div>';
+            return;
+        }
+
+        // Create ranking cards
+        sortedData.forEach((modelData, index) => {
+            modelData.rank = index + 1;
+            const cardHtml = this.createModelRankingCard(modelData);
+            container.innerHTML += cardHtml;
+        });
+    }
+
+    // Sort ranking data based on criteria
+    sortRankingData(data, sortBy) {
+        const sorted = [...data];
+
+        switch (sortBy) {
+            case 'rating':
+                return sorted.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+            case 'responses':
+                return sorted.sort((a, b) => b.totalEvaluations - a.totalEvaluations);
+            case 'speed':
+                return sorted.sort((a, b) => (a.averageSpeed || 999) - (b.averageSpeed || 999));
+            default:
+                return sorted;
+        }
+    }
+
+    // Create a model ranking card
+    createModelRankingCard(modelData) {
+        // Convert average speed from milliseconds to seconds
+        const averageSpeedInSeconds = modelData.averageSpeed ? (modelData.averageSpeed / 1000).toFixed(1) : '0.0';
+        
+        return `
+            <div class="ranking-card bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl hover:shadow-modern-2xl transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-4">
+                        <div class="ranking-position text-2xl font-bold text-purple-400">#${modelData.rank}</div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-white">${modelData.modelId}</h3>
+                            <div class="text-sm text-slate-400">${modelData.totalEvaluations} evaluations</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-yellow-400">${(modelData.averageRating || 0).toFixed(1)}⭐</div>
+                        <div class="text-sm text-slate-400">avg rating</div>
+                    </div>
+                </div>
+
+                <!-- Performance metrics -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-green-400">${averageSpeedInSeconds}s</div>
+                        <div class="text-xs text-slate-400">avg response</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-blue-400">${Math.round(modelData.averageTokens || 0)}</div>
+                        <div class="text-xs text-slate-400">avg tokens</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-purple-400">${Math.round(modelData.commentRate || 0)}%</div>
+                        <div class="text-xs text-slate-400">with comments</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-lg font-semibold text-pink-400">${modelData.lastEvaluated || 0}</div>
+                        <div class="text-xs text-slate-400">days ago</div>
+                    </div>
+                </div>
+
+                <!-- Rating distribution -->
+                <div class="mb-4">
+                    <div class="flex items-center justify-between text-sm text-slate-400 mb-2">
+                        <span>Rating Distribution</span>
+                        <span>1⭐ - 10⭐</span>
+                    </div>
+                    <div class="flex gap-1">
+                        ${this.createRatingDistributionBars(modelData.ratingDistribution || new Array(10).fill(0))}
+                    </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex gap-2">
+                    <button class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300"
+                            onclick="app.selectModelForComparison('${modelData.modelId}')">
+                        Select Model
+                    </button>
+                    <button class="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300"
+                            onclick="app.viewModelDetails('${modelData.modelId}')">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // Generate rating distribution for visualization (fallback method)
+    generateRatingDistribution(modelData) {
+        // Use backend-provided rating distribution if available
+        if (modelData.ratingDistribution && Array.isArray(modelData.ratingDistribution)) {
+            return modelData.ratingDistribution;
+        }
+
+        // Fallback to simulated distribution if no backend data
+        const distribution = new Array(10).fill(0);
+        const avgRating = modelData.averageRating || 5;
+        const totalEvals = modelData.totalEvaluations || 1;
+
+        // Create a realistic distribution around the average
+        for (let i = 0; i < 10; i++) {
+            const rating = i + 1;
+            const distance = Math.abs(rating - avgRating);
+            distribution[i] = Math.max(0, totalEvals * (0.3 - distance * 0.05));
+        }
+
+        // Normalize to total evaluations
+        const sum = distribution.reduce((a, b) => a + b, 0);
+        if (sum > 0) {
+            distribution.forEach((_, i) => {
+                distribution[i] = Math.round((distribution[i] / sum) * totalEvals);
+            });
+        }
+
+        return distribution;
+    }
+
+    // Create rating distribution bars
+    createRatingDistributionBars(distribution) {
+        let barsHtml = '';
+        for (let i = 0; i < 10; i++) {
+            const height = Math.max(2, (distribution[i] || 0) * 3); // Minimum height of 2px
+            barsHtml += `
+                <div class="flex flex-col items-center gap-1">
+                    <div class="w-3 bg-gradient-to-t from-purple-600 to-pink-600 rounded-sm"
+                         style="height: ${height}px; min-height: 2px;"
+                         title="${i + 1}⭐: ${distribution[i] || 0}"></div>
+                    <span class="text-xs text-slate-500">${i + 1}</span>
+                </div>
+            `;
+        }
+        return barsHtml;
+    }
+
+    // Display ranking error
+    displayRankingError(message) {
+        const container = document.getElementById('rankingLeaderboard');
+        if (container) {
+            container.innerHTML = `
+                <div class="text-red-400 text-center py-8">
+                    <div class="text-lg font-semibold mb-2">Error Loading Rankings</div>
+                    <div class="text-sm">${message}</div>
+                </div>
+            `;
+        }
+    }
+
+    // Select model for comparison from rankings
+    selectModelForComparison(modelId) {
+        if (this.selectedModels.includes(modelId)) {
+            this.displayErrorMessage('This model is already selected');
+            return;
+        }
+
+        if (this.selectedModels.length >= 3) {
+            this.displayErrorMessage('Maximum of 3 models can be selected');
+            return;
+        }
+
+        this.selectedModels.push(modelId);
+        this.saveModelsToStorage();
+        this.updateUI();
+
+        // Show success message
+        this.displaySuccessMessage(`Added ${modelId} from rankings`);
+
+        // Switch back to main view
+        this.showMainView();
+    }
+
+    // View model details (placeholder for future enhancement)
+    viewModelDetails(modelId) {
+        this.displaySuccessMessage(`Viewing details for ${modelId} - feature coming soon!`);
+    }
+
+    // Show main view (hide rankings, show main content)
+    showMainView() {
+        document.getElementById('rankingDashboard').classList.add('hidden');
+        // Don't show results section by default, let user navigate naturally
+    }
+
+    // Setup ranking controls event listeners
+    setupRankingControls() {
+        // Time filter
+        const timeFilter = document.getElementById('rankingTimeFilter');
+        if (timeFilter) {
+            timeFilter.addEventListener('change', (e) => {
+                this.loadRankingData(e.target.value, document.getElementById('rankingSortBy').value);
+            });
+        }
+
+        // Sort by filter
+        const sortBy = document.getElementById('rankingSortBy');
+        if (sortBy) {
+            sortBy.addEventListener('change', (e) => {
+                this.sortCurrentRankingData(e.target.value);
+            });
+        }
+
+        // Show rankings button
+        const showRankingsBtn = document.getElementById('showRankingsBtn');
+        if (showRankingsBtn) {
+            showRankingsBtn.addEventListener('click', () => {
+                this.showRankingDashboard();
+            });
+        }
+    }
+
+    // Sort current ranking data without reloading
+    sortCurrentRankingData(sortBy) {
+        const container = document.getElementById('rankingLeaderboard');
+        if (!container) return;
+
+        const cards = Array.from(container.querySelectorAll('.ranking-card'));
+        const sortedCards = cards.sort((a, b) => {
+            const aData = this.extractRankingDataFromCard(a);
+            const bData = this.extractRankingDataFromCard(b);
+
+            switch (sortBy) {
+                case 'rating':
+                    return (bData.averageRating || 0) - (aData.averageRating || 0);
+                case 'responses':
+                    return bData.totalEvaluations - aData.totalEvaluations;
+                case 'speed':
+                    return (aData.averageSpeed || 999) - (bData.averageSpeed || 999);
+                default:
+                    return 0;
+            }
+        });
+
+        // Update ranks and re-render
+        sortedCards.forEach((card, index) => {
+            const rankElement = card.querySelector('.ranking-position');
+            if (rankElement) {
+                rankElement.textContent = `#${index + 1}`;
+            }
+        });
+
+        container.innerHTML = '';
+        sortedCards.forEach(card => container.appendChild(card));
+    }
+
+    // Extract ranking data from a card element
+    extractRankingDataFromCard(card) {
+        const modelId = card.querySelector('h3')?.textContent || '';
+        const avgRating = parseFloat(card.querySelector('.text-yellow-400')?.textContent?.replace('⭐', '') || '0');
+        const totalEvals = parseInt(card.querySelector('.text-slate-400')?.textContent?.match(/(\d+)/)?.[1] || '0');
+        const avgSpeed = parseFloat(card.querySelector('.text-green-400')?.textContent?.replace('s', '') || '0');
+
+        return {
+            modelId,
+            averageRating: avgRating,
+            totalEvaluations: totalEvals,
+            averageSpeed: avgSpeed
+        };
     }
 }
 

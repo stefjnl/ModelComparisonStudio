@@ -226,4 +226,31 @@ public class EvaluationStatisticsDto
     /// </summary>
     [Required]
     public int CommentedEvaluations { get; set; }
+
+    /// <summary>
+    /// The average response time in milliseconds.
+    /// </summary>
+    public double AverageSpeed { get; set; }
+
+    /// <summary>
+    /// The average token count.
+    /// </summary>
+    public double AverageTokens { get; set; }
+
+    /// <summary>
+    /// The percentage of evaluations with comments.
+    /// </summary>
+    public double CommentRate { get; set; }
+
+    /// <summary>
+    /// The number of days since the last evaluation.
+    /// </summary>
+    public int LastEvaluated { get; set; }
+
+    /// <summary>
+    /// The distribution of ratings (1-10) for this model.
+    /// Index 0 represents 1-star, index 9 represents 10-star.
+    /// </summary>
+    [Required]
+    public int[] RatingDistribution { get; set; } = new int[10];
 }

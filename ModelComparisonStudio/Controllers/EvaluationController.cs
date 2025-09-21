@@ -40,14 +40,14 @@ public class EvaluationController : ControllerBase
         {
             // Enable buffering to allow reading request body multiple times
             Request.EnableBuffering();
-            
+
             // Debug logging to see what's actually being received
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
             {
                 _logger.LogInformation("CreateEvaluation called. Request body received: {RequestBody}",
                     await reader.ReadToEndAsync());
             }
-            
+
             // Reset the request body stream position for model binding
             Request.Body.Position = 0;
 
@@ -120,14 +120,14 @@ public class EvaluationController : ControllerBase
         {
             // Enable buffering to allow reading request body multiple times
             Request.EnableBuffering();
-            
+
             // Debug logging to see what's actually being received
             using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
             {
                 _logger.LogInformation("UpsertEvaluation called. Request body received: {RequestBody}",
                     await reader.ReadToEndAsync());
             }
-            
+
             // Reset the request body stream position for model binding
             Request.Body.Position = 0;
 
@@ -470,6 +470,80 @@ public class EvaluationController : ControllerBase
     }
 
     /// <summary>
+    /// Gets evaluation statistics for all models.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Evaluation statistics for all models.</returns>
+    [HttpGet("statistics/all")]
+    [ProducesResponseType(typeof(IReadOnlyList<EvaluationStatisticsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAllEvaluationStatistics(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var statistics = await _evaluationService.GetAllEvaluationStatisticsAsync(cancellationToken);
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting all evaluation statistics");
+            return StatusCode(500, new
+            {
+                type = "internal_error",
+                title = "Internal Server Error",
+                status = 500,
+                detail = "An unexpected error occurred while retrieving evaluation statistics",
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    /// <summary>
+    /// Gets evaluation statistics for all models with optional timeframe filtering.
+    /// </summary>
+    /// <param name="timeframe">Timeframe filter: all, week, or month.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Evaluation statistics for all models within the specified timeframe.</returns>
+    [HttpGet("statistics")]
+    [ProducesResponseType(typeof(IReadOnlyList<EvaluationStatisticsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetEvaluationStatisticsByTimeframe(
+        [FromQuery] string timeframe = "all",
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!new[] { "all", "week", "month" }.Contains(timeframe.ToLower()))
+            {
+                return BadRequest(new
+                {
+                    type = "validation_error",
+                    title = "Validation Error",
+                    status = 400,
+                    detail = "Timeframe must be 'all', 'week', or 'month'",
+                    traceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            var statistics = await _evaluationService.GetAllEvaluationStatisticsByTimeframeAsync(timeframe, cancellationToken);
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error getting evaluation statistics for timeframe {Timeframe}", timeframe);
+            return StatusCode(500, new
+            {
+                type = "internal_error",
+                title = "Internal Server Error",
+                status = 500,
+                detail = "An unexpected error occurred while retrieving evaluation statistics",
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    /// <summary>
     /// Deletes an evaluation by ID.
     /// </summary>
     /// <param name="evaluationId">The evaluation ID.</param>
@@ -486,7 +560,7 @@ public class EvaluationController : ControllerBase
         try
         {
             var result = await _evaluationService.DeleteEvaluationAsync(evaluationId, cancellationToken);
-            
+
             if (!result)
             {
                 return NotFound(new
@@ -525,13 +599,13 @@ public class EvaluationController : ControllerBase
         try
         {
             var evaluations = await _evaluationService.GetAllEvaluationsAsync(0, 100, cancellationToken);
-            
+
             var result = $"Total evaluations: {evaluations.Count}\n";
             foreach (var eval in evaluations)
             {
                 result += $"ID: {eval.Id}, PromptId: {eval.PromptId}, ModelId: {eval.ModelId}, ResponseTimeMs: {eval.ResponseTimeMs}, TokenCount: {eval.TokenCount}, Rating: {eval.Rating}, UpdatedAt: {eval.UpdatedAt}\n";
             }
-            
+
             return Ok(result);
         }
         catch (Exception ex)

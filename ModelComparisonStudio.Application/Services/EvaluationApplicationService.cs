@@ -32,7 +32,7 @@ public class EvaluationApplicationService
         CreateEvaluationDto dto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating evaluation for model {ModelId} with prompt {PromptId}", 
+        _logger.LogInformation("Creating evaluation for model {ModelId} with prompt {PromptId}",
             dto.ModelId, dto.PromptId);
 
         try
@@ -57,9 +57,9 @@ public class EvaluationApplicationService
             }
 
             var savedEvaluation = await _evaluationRepository.SaveAsync(evaluation, cancellationToken);
-            
+
             _logger.LogInformation("Evaluation {EvaluationId} created successfully", savedEvaluation.Id);
-            
+
             return EvaluationDto.FromDomainEvaluation(savedEvaluation);
         }
         catch (Exception ex)
@@ -81,14 +81,14 @@ public class EvaluationApplicationService
         UpdateRatingDto dto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Updating rating for evaluation {EvaluationId} to {Rating}", 
+        _logger.LogInformation("Updating rating for evaluation {EvaluationId} to {Rating}",
             evaluationId, dto.Rating);
 
         try
         {
             var id = EvaluationId.FromString(evaluationId);
             var evaluation = await _evaluationRepository.GetByIdAsync(id, cancellationToken);
-            
+
             if (evaluation == null)
             {
                 throw new KeyNotFoundException($"Evaluation with ID {evaluationId} not found");
@@ -96,9 +96,9 @@ public class EvaluationApplicationService
 
             evaluation.UpdateRating(dto.Rating);
             var updatedEvaluation = await _evaluationRepository.UpdateAsync(evaluation, cancellationToken);
-            
+
             _logger.LogInformation("Rating updated successfully for evaluation {EvaluationId}", evaluationId);
-            
+
             return EvaluationDto.FromDomainEvaluation(updatedEvaluation);
         }
         catch (Exception ex)
@@ -126,7 +126,7 @@ public class EvaluationApplicationService
         {
             var id = EvaluationId.FromString(evaluationId);
             var evaluation = await _evaluationRepository.GetByIdAsync(id, cancellationToken);
-            
+
             if (evaluation == null)
             {
                 throw new KeyNotFoundException($"Evaluation with ID {evaluationId} not found");
@@ -134,9 +134,9 @@ public class EvaluationApplicationService
 
             evaluation.UpdateComment(dto.Comment);
             var updatedEvaluation = await _evaluationRepository.UpdateAsync(evaluation, cancellationToken);
-            
+
             _logger.LogInformation("Comment updated successfully for evaluation {EvaluationId}", evaluationId);
-            
+
             return EvaluationDto.FromDomainEvaluation(updatedEvaluation);
         }
         catch (Exception ex)
@@ -162,7 +162,7 @@ public class EvaluationApplicationService
         {
             var id = EvaluationId.FromString(evaluationId);
             var evaluation = await _evaluationRepository.GetByIdAsync(id, cancellationToken);
-            
+
             if (evaluation == null)
             {
                 throw new KeyNotFoundException($"Evaluation with ID {evaluationId} not found");
@@ -217,7 +217,7 @@ public class EvaluationApplicationService
         int take = 50,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting evaluations for model {ModelId} (skip: {Skip}, take: {Take})", 
+        _logger.LogInformation("Getting evaluations for model {ModelId} (skip: {Skip}, take: {Take})",
             modelId, skip, take);
 
         try
@@ -248,7 +248,7 @@ public class EvaluationApplicationService
         {
             var averageRating = await _evaluationRepository.GetAverageRatingByModelIdAsync(modelId, cancellationToken);
             var totalEvaluations = await _evaluationRepository.GetCountByModelIdAsync(modelId, cancellationToken);
-            
+
             // For in-memory repository, we need to calculate commented evaluations manually
             var evaluations = await _evaluationRepository.GetByModelIdAsync(modelId, 0, int.MaxValue, cancellationToken);
             var ratedEvaluations = evaluations.Count(e => e.Rating.HasValue);
@@ -356,6 +356,201 @@ public class EvaluationApplicationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to upsert evaluation for model {ModelId}", dto.ModelId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets evaluation statistics for all models.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of evaluation statistics for all models.</returns>
+    public async Task<IReadOnlyList<EvaluationStatisticsDto>> GetAllEvaluationStatisticsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting evaluation statistics for all models");
+
+        try
+        {
+            var allEvaluations = await _evaluationRepository.GetAllAsync(0, int.MaxValue, cancellationToken);
+
+            // Group evaluations by model ID
+            var modelGroups = allEvaluations
+                .GroupBy(e => e.ModelId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var statistics = new List<EvaluationStatisticsDto>();
+
+            foreach (var modelGroup in modelGroups)
+            {
+                var modelId = modelGroup.Key;
+                var evaluations = modelGroup.Value;
+
+                var averageRating = await _evaluationRepository.GetAverageRatingByModelIdAsync(modelId, cancellationToken);
+                var totalEvaluations = evaluations.Count;
+                var ratedEvaluations = evaluations.Count(e => e.Rating.HasValue);
+                var commentedEvaluations = evaluations.Count(e => !e.Comment.IsEmpty());
+
+                // Calculate average response time and token count
+                var evaluationsWithResponseTime = evaluations.Where(e => e.ResponseTimeMs > 0);
+                var averageSpeed = evaluationsWithResponseTime.Any()
+                    ? evaluationsWithResponseTime.Average(e => e.ResponseTimeMs)
+                    : 0;
+
+                var evaluationsWithTokens = evaluations.Where(e => e.TokenCount.HasValue && e.TokenCount.Value > 0);
+                var averageTokens = evaluationsWithTokens.Any()
+                    ? evaluationsWithTokens.Average(e => e.TokenCount.Value)
+                    : 0;
+
+                // Calculate comment rate
+                var commentRate = totalEvaluations > 0
+                    ? (double)commentedEvaluations / totalEvaluations * 100
+                    : 0;
+
+                // Calculate days since last evaluation
+                var lastEvaluated = evaluations.Any()
+                    ? (DateTime.UtcNow - evaluations.Max(e => e.UpdatedAt)).Days
+                    : 0;
+
+                // Calculate rating distribution (1-10 stars)
+                var ratingDistribution = new int[10];
+                foreach (var evaluation in evaluations.Where(e => e.Rating.HasValue))
+                {
+                    var rating = evaluation.Rating.Value;
+                    if (rating >= 1 && rating <= 10)
+                    {
+                        ratingDistribution[rating - 1]++;
+                    }
+                }
+
+                statistics.Add(new EvaluationStatisticsDto
+                {
+                    ModelId = modelId,
+                    AverageRating = averageRating,
+                    TotalEvaluations = totalEvaluations,
+                    RatedEvaluations = ratedEvaluations,
+                    CommentedEvaluations = commentedEvaluations,
+                    AverageSpeed = averageSpeed,
+                    AverageTokens = averageTokens,
+                    CommentRate = commentRate,
+                    LastEvaluated = lastEvaluated,
+                    RatingDistribution = ratingDistribution
+                });
+            }
+
+            _logger.LogInformation("Retrieved statistics for {ModelCount} models", statistics.Count);
+            return statistics;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get evaluation statistics for all models");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets evaluation statistics for all models with timeframe filtering.
+    /// </summary>
+    /// <param name="timeframe">Timeframe filter: all, week, or month.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of evaluation statistics for all models within the specified timeframe.</returns>
+    public async Task<IReadOnlyList<EvaluationStatisticsDto>> GetAllEvaluationStatisticsByTimeframeAsync(
+        string timeframe = "all",
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Getting evaluation statistics for all models with timeframe: {Timeframe}", timeframe);
+
+        try
+        {
+            DateTime? startDate = null;
+            switch (timeframe.ToLower())
+            {
+                case "week":
+                    startDate = DateTime.UtcNow.AddDays(-7);
+                    break;
+                case "month":
+                    startDate = DateTime.UtcNow.AddDays(-30);
+                    break;
+                case "all":
+                default:
+                    startDate = null;
+                    break;
+            }
+
+            var allEvaluations = startDate.HasValue
+                ? await _evaluationRepository.GetAllSinceAsync(startDate.Value, cancellationToken)
+                : await _evaluationRepository.GetAllAsync(0, int.MaxValue, cancellationToken);
+
+            // Group evaluations by model ID
+            var modelGroups = allEvaluations
+                .GroupBy(e => e.ModelId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var statistics = new List<EvaluationStatisticsDto>();
+
+            foreach (var modelGroup in modelGroups)
+            {
+                var modelId = modelGroup.Key;
+                var evaluations = modelGroup.Value;
+
+                var averageRating = await _evaluationRepository.GetAverageRatingByModelIdAsync(modelId, cancellationToken);
+                var totalEvaluations = evaluations.Count;
+                var ratedEvaluations = evaluations.Count(e => e.Rating.HasValue);
+                var commentedEvaluations = evaluations.Count(e => !e.Comment.IsEmpty());
+
+                // Calculate average response time and token count
+                var evaluationsWithResponseTime = evaluations.Where(e => e.ResponseTimeMs > 0);
+                var averageSpeed = evaluationsWithResponseTime.Any()
+                    ? evaluationsWithResponseTime.Average(e => e.ResponseTimeMs)
+                    : 0;
+
+                var evaluationsWithTokens = evaluations.Where(e => e.TokenCount.HasValue && e.TokenCount.Value > 0);
+                var averageTokens = evaluationsWithTokens.Any()
+                    ? evaluationsWithTokens.Average(e => e.TokenCount.Value)
+                    : 0;
+
+                // Calculate comment rate
+                var commentRate = totalEvaluations > 0
+                    ? (double)commentedEvaluations / totalEvaluations * 100
+                    : 0;
+
+                // Calculate days since last evaluation
+                var lastEvaluated = evaluations.Any()
+                    ? (DateTime.UtcNow - evaluations.Max(e => e.UpdatedAt)).Days
+                    : 0;
+
+                // Calculate rating distribution (1-10 stars)
+                var ratingDistribution = new int[10];
+                foreach (var evaluation in evaluations.Where(e => e.Rating.HasValue))
+                {
+                    var rating = evaluation.Rating.Value;
+                    if (rating >= 1 && rating <= 10)
+                    {
+                        ratingDistribution[rating - 1]++;
+                    }
+                }
+
+                statistics.Add(new EvaluationStatisticsDto
+                {
+                    ModelId = modelId,
+                    AverageRating = averageRating,
+                    TotalEvaluations = totalEvaluations,
+                    RatedEvaluations = ratedEvaluations,
+                    CommentedEvaluations = commentedEvaluations,
+                    AverageSpeed = averageSpeed,
+                    AverageTokens = averageTokens,
+                    CommentRate = commentRate,
+                    LastEvaluated = lastEvaluated,
+                    RatingDistribution = ratingDistribution
+                });
+            }
+
+            _logger.LogInformation("Retrieved statistics for {ModelCount} models with timeframe {Timeframe}", statistics.Count, timeframe);
+            return statistics;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get evaluation statistics for all models with timeframe {Timeframe}", timeframe);
             throw;
         }
     }

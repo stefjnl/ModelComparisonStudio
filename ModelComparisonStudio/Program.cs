@@ -77,15 +77,29 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 // Initialize database
 using (var scope = builder.Services.BuildServiceProvider().CreateScope())
 {
+    var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var currentDir = Directory.GetCurrentDirectory();
+    dbLogger.LogInformation("Current working directory: {CurrentDir}", currentDir);
+    dbLogger.LogInformation("Database path will be: {DbPath}", Path.Combine(currentDir, "evaluations.db"));
+
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    dbContext.Database.EnsureCreated(); // Creates the database if it doesn't exist
+    try
+    {
+        dbContext.Database.EnsureCreated(); // Creates the database if it doesn't exist
+        dbLogger.LogInformation("Database initialized successfully");
+    }
+    catch (Exception ex)
+    {
+        dbLogger.LogError(ex, "Failed to initialize database");
+        throw;
+    }
 }
 
 var app = builder.Build();
 
 // Test logging configuration
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Application starting up - logging is working!");
+var appLogger = app.Services.GetRequiredService<ILogger<Program>>();
+appLogger.LogInformation("Application starting up - logging is working!");
 
 // Add middleware to handle JSON parsing errors
 app.Use(async (context, next) =>
@@ -96,7 +110,7 @@ app.Use(async (context, next) =>
     }
     catch (System.Text.Json.JsonException jsonEx)
     {
-        logger.LogError(jsonEx, "JSON parsing error occurred");
+        appLogger.LogError(jsonEx, "JSON parsing error occurred");
         context.Response.StatusCode = 400;
         context.Response.ContentType = "application/json";
         await context.Response.WriteAsJsonAsync(new

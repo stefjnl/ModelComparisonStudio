@@ -42,6 +42,13 @@ public interface IEvaluationRepository
     Task<IReadOnlyList<Evaluation>> GetAllAsync(int skip = 0, int take = 50, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all evaluations without pagination (for statistics and reporting).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>All evaluations in the repository.</returns>
+    Task<IReadOnlyList<Evaluation>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets evaluations by model ID.
     /// </summary>
     /// <param name="modelId">The model ID to filter by.</param>
@@ -111,4 +118,12 @@ public interface IEvaluationRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of evaluations for the model.</returns>
     Task<int> GetCountByModelIdAsync(string modelId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all evaluations since a specific date.
+    /// </summary>
+    /// <param name="sinceDate">The starting date to filter evaluations.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of evaluations since the specified date.</returns>
+    Task<IReadOnlyList<Evaluation>> GetAllSinceAsync(DateTime sinceDate, CancellationToken cancellationToken = default);
 }

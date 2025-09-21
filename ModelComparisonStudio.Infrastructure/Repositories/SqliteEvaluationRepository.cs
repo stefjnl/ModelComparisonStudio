@@ -155,6 +155,24 @@ public class SqliteEvaluationRepository : IEvaluationRepository
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Evaluation>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Getting all evaluations (no pagination)");
+
+        try
+        {
+            return await _context.Evaluations
+                .OrderByDescending(e => e.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all evaluations");
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<Evaluation>> GetByModelIdAsync(string modelId, int skip = 0, int take = 50, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(modelId))
@@ -294,9 +312,19 @@ public class SqliteEvaluationRepository : IEvaluationRepository
 
         try
         {
-            return await _context.Evaluations
+            var averageRating = await _context.Evaluations
                 .Where(e => e.ModelId.ToLower() == modelId.ToLower() && e.Rating.HasValue)
-                .AverageAsync(e => e.Rating.Value, cancellationToken);
+                .Select(e => e.Rating.Value)
+                .AverageAsync(cancellationToken)
+                .ConfigureAwait(false);
+            
+            return averageRating;
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Sequence contains no elements"))
+        {
+            // Return null when there are no ratings for this model
+            _logger.LogDebug("No ratings found for model {ModelId}, returning null", modelId);
+            return null;
         }
         catch (Exception ex)
         {
@@ -346,6 +374,25 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get evaluation for prompt {PromptId} and model {ModelId}", promptId, modelId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Evaluation>> GetAllSinceAsync(DateTime sinceDate, CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug("Getting all evaluations since {SinceDate}", sinceDate);
+
+        try
+        {
+            return await _context.Evaluations
+                .Where(e => e.CreatedAt >= sinceDate)
+                .OrderByDescending(e => e.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get evaluations since {SinceDate}", sinceDate);
             throw;
         }
     }
