@@ -24,13 +24,11 @@ namespace ModelComparisonStudio.Services
             _httpClient = httpClient;
             _logger = logger;
             
-            // Configure HttpClient for larger requests and longer timeouts
-            _httpClient.Timeout = TimeSpan.FromMinutes(5); // Increased from default 100 seconds
-            _httpClient.DefaultRequestHeaders.Accept.Clear();
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            
-            // Enhanced diagnostic logging
+            // HttpClient is now configured in Program.cs with 5-minute timeout
+            // Log the configuration for verification
             _logger.LogInformation("=== AIService Configuration Diagnostic ===");
+            _logger.LogInformation("HTTP Client Timeout: {TimeoutMinutes} minutes ({TimeoutSeconds} seconds)",
+                _httpClient.Timeout.TotalMinutes, _httpClient.Timeout.TotalSeconds);
             _logger.LogInformation("NanoGPT Configuration: {@NanoGPT}", _apiConfiguration.NanoGPT);
             _logger.LogInformation("OpenRouter Configuration: {@OpenRouter}", _apiConfiguration.OpenRouter);
             
@@ -144,24 +142,49 @@ namespace ModelComparisonStudio.Services
                 _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], Accept: {AcceptHeader}",
                     _httpClient.DefaultRequestHeaders.Accept.ToString());
 
-                // Make the API call with enhanced error handling for large requests
-                _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
-                
+                // Make the API call with enhanced error handling and detailed logging
+                _logger.LogInformation("=== API Request Details ===");
+                _logger.LogInformation("Request URL: {BaseUrl}/chat/completions", baseUrl);
+                _logger.LogInformation("Request Method: POST");
+                _logger.LogInformation("Request Headers: {Headers}",
+                    string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}")));
+                _logger.LogInformation("Content-Type: {ContentType}", content.Headers.ContentType?.ToString());
+                _logger.LogInformation("Content-Length: {ContentLength} bytes", content.Headers.ContentLength ?? -1);
+                _logger.LogInformation("Timeout: {Timeout} minutes", _httpClient.Timeout.TotalMinutes);
+                _logger.LogInformation("=== End Request Details ===");
+
                 try
                 {
+                    var apiCallStopwatch = Stopwatch.StartNew();
+                    _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
+                    
                     var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
                     
-                    // Process response normally
+                    apiCallStopwatch.Stop();
+                    var apiResponseTime = apiCallStopwatch.ElapsedMilliseconds;
                     stopwatch.Stop();
-                    var apiResponseTime = stopwatch.ElapsedMilliseconds;
+                    var totalProcessingTime = stopwatch.ElapsedMilliseconds;
 
-                    _logger.LogInformation("API call completed in {ResponseTime}ms with status code {StatusCode}", apiResponseTime, (int)response.StatusCode);
+                    _logger.LogInformation("API call timing - Network: {NetworkTime}ms, Total processing: {TotalTime}ms",
+                        apiResponseTime, totalProcessingTime);
+                    _logger.LogInformation("HTTP Status: {StatusCode} {ReasonPhrase}", (int)response.StatusCode, response.ReasonPhrase);
+                    _logger.LogInformation("Response Headers: {Headers}",
+                        string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}")));
 
                     if (!response.IsSuccessStatusCode)
                     {
                         var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                        _logger.LogError("API call failed for model {ModelId}: {StatusCode} - {ErrorContent}",
-                            modelId, response.StatusCode, errorContent);
+                        var errorContentLength = errorContent?.Length ?? 0;
+                        
+                        _logger.LogError("=== API Error Details ===");
+                        _logger.LogError("Model: {ModelId}", modelId);
+                        _logger.LogError("Status: {StatusCode} {ReasonPhrase}", (int)response.StatusCode, response.ReasonPhrase);
+                        _logger.LogError("Response Time: {ResponseTime}ms", apiResponseTime);
+                        _logger.LogError("Error Content Length: {ContentLength} characters", errorContentLength);
+                        _logger.LogError("Error Content (first 1000 chars): {ErrorContentPreview}",
+                            errorContentLength > 1000 ? errorContent.Substring(0, 1000) + "..." : errorContent);
+                        _logger.LogError("Request URL: {Url}", $"{baseUrl}/chat/completions");
+                        _logger.LogError("=== End Error Details ===");
 
                         return new AnalysisResult
                         {
@@ -173,54 +196,87 @@ namespace ModelComparisonStudio.Services
                         };
                     }
 
-                    // Process successful response
+                    // Process successful response with detailed logging
                     var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogInformation("Raw API response: {ResponseJson}", responseJson);
+                    var responseLength = responseJson.Length;
                     
-                    // Try to deserialize with more robust error handling
+                    _logger.LogInformation("=== API Response Success ===");
+                    _logger.LogInformation("Response length: {ResponseLength} characters", responseLength);
+                    _logger.LogInformation("Response preview (first 500 chars): {ResponsePreview}",
+                        responseLength > 500 ? responseJson.Substring(0, 500) + "..." : responseJson);
+                    
+                    // Try to deserialize with more robust error handling and detailed logging
                     OpenRouterResponse? deserializedResponse = null;
                     try
                     {
                         _logger.LogInformation("Attempting JSON deserialization...");
+                        var deserializeStopwatch = Stopwatch.StartNew();
+                        
                         deserializedResponse = JsonSerializer.Deserialize<OpenRouterResponse>(responseJson, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             ReadCommentHandling = JsonCommentHandling.Skip,
                             AllowTrailingCommas = true
                         });
-                        _logger.LogInformation("JSON deserialization completed successfully");
+                        
+                        deserializeStopwatch.Stop();
+                        _logger.LogInformation("JSON deserialization completed in {DeserializeTime}ms", deserializeStopwatch.ElapsedMilliseconds);
                     }
                     catch (JsonException jsonEx)
                     {
+                        _logger.LogError("=== JSON Deserialization Error ===");
                         _logger.LogError(jsonEx, "JSON deserialization failed: {ErrorMessage}", jsonEx.Message);
-                        _logger.LogError("JSON parsing error details - Path: {Path}, LineNumber: {LineNumber}, BytePositionInLine: {BytePositionInLine}",
-                            jsonEx.Path, jsonEx.LineNumber, jsonEx.BytePositionInLine);
+                        _logger.LogError("Error Path: {Path}", jsonEx.Path);
+                        _logger.LogError("Line: {LineNumber}, Position: {BytePositionInLine}", jsonEx.LineNumber, jsonEx.BytePositionInLine);
+                        
+                        // Simplified error snippet logging
+                        if (responseLength > 0)
+                        {
+                            var errorPosition = (int)jsonEx.BytePositionInLine;
+                            var startPos = Math.Max(0, Math.Min(responseLength - 1, errorPosition - 25));
+                            var length = Math.Min(50, responseLength - startPos);
+                            var errorSnippet = responseJson.Substring(startPos, length);
+                            _logger.LogError("Error snippet: {ErrorSnippet}", errorSnippet);
+                        }
+                        _logger.LogError("=== End JSON Error ===");
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "General deserialization error: {ErrorMessage}", ex.Message);
                     }
 
-                    _logger.LogInformation("Deserialized API response - ID: '{Id}', Object: '{Object}', Model: '{Model}', Choices: {ChoiceCount}, Provider: '{Provider}'",
-                        deserializedResponse?.Id ?? "NULL",
-                        deserializedResponse?.Object ?? "NULL",
-                        deserializedResponse?.Model ?? "NULL",
-                        deserializedResponse?.Choices?.Length ?? -1,
-                        deserializedResponse?.Provider ?? "NULL");
+                    // Detailed response analysis
+                    _logger.LogInformation("=== Response Analysis ===");
+                    _logger.LogInformation("Response ID: '{Id}'", deserializedResponse?.Id ?? "NULL");
+                    _logger.LogInformation("Object Type: '{Object}'", deserializedResponse?.Object ?? "NULL");
+                    _logger.LogInformation("Model: '{Model}'", deserializedResponse?.Model ?? "NULL");
+                    _logger.LogInformation("Provider: '{Provider}'", deserializedResponse?.Provider ?? "NULL");
+                    _logger.LogInformation("Number of choices: {ChoiceCount}", deserializedResponse?.Choices?.Length ?? -1);
+                    _logger.LogInformation("Token usage - Prompt: {PromptTokens}, Completion: {CompletionTokens}, Total: {TotalTokens}",
+                        deserializedResponse?.Usage?.PromptTokens ?? -1,
+                        deserializedResponse?.Usage?.CompletionTokens ?? -1,
+                        deserializedResponse?.Usage?.TotalTokens ?? -1);
 
                     // Also log the raw JSON structure for debugging
                     try
                     {
                         using var jsonDoc = JsonDocument.Parse(responseJson);
-                        _logger.LogInformation("Raw JSON structure analysis - Root element: {RootElement}, Has choices property: {HasChoices}, Choices array length: {ChoicesLength}",
-                            jsonDoc.RootElement.ValueKind,
-                            jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp),
-                            choicesProp.ValueKind == JsonValueKind.Array ? choicesProp.GetArrayLength() : -1);
+                        _logger.LogInformation("JSON Structure - Root: {RootElement}", jsonDoc.RootElement.ValueKind);
+                        
+                        if (jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp) && choicesProp.ValueKind == JsonValueKind.Array)
+                        {
+                            _logger.LogInformation("Choices array length: {ChoicesLength}", choicesProp.GetArrayLength());
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Choices property not found or not an array in response");
+                        }
                     }
                     catch (Exception parseEx)
                     {
                         _logger.LogError(parseEx, "Failed to parse JSON structure: {ErrorMessage}", parseEx.Message);
                     }
+                    _logger.LogInformation("=== End Response Analysis ===");
 
                     if (deserializedResponse?.Choices == null)
                     {
@@ -230,26 +286,35 @@ namespace ModelComparisonStudio.Services
 
                     if (deserializedResponse.Choices.Length == 0)
                     {
-                        _logger.LogError("No response choices returned from API for model {ModelId}. Response: {ResponseJson}", modelId, responseJson);
+                        _logger.LogError("No response choices returned from API for model {ModelId}", modelId);
+                        _logger.LogError("Full response: {ResponseJson}", responseJson);
                         throw new InvalidOperationException($"No response choices returned from API. Raw response: {responseJson}");
                     }
 
-                    _logger.LogInformation("Processing choice 0 - Role: {Role}, Content length: {ContentLength}, Finish reason: {FinishReason}",
-                        deserializedResponse.Choices[0].Message?.Role ?? "NULL",
-                        deserializedResponse.Choices[0].Message?.Content?.Length ?? 0,
-                        deserializedResponse.Choices[0].FinishReason ?? "NULL");
+                    // Detailed choice analysis
+                    var firstChoice = deserializedResponse.Choices[0];
+                    _logger.LogInformation("First choice analysis - Index: {Index}, Finish reason: {FinishReason}",
+                        firstChoice.Index, firstChoice.FinishReason ?? "NULL");
+                    _logger.LogInformation("Message - Role: {Role}, Content length: {ContentLength} characters",
+                        firstChoice.Message?.Role ?? "NULL",
+                        firstChoice.Message?.Content?.Length ?? 0);
 
                     var analysisResult = new AnalysisResult
                     {
                         ModelId = modelId,
-                        Response = deserializedResponse.Choices[0].Message.Content,
+                        Response = firstChoice.Message?.Content ?? string.Empty,
                         ResponseTimeMs = apiResponseTime,
                         TokenCount = deserializedResponse.Usage?.TotalTokens,
                         Status = "success"
                     };
 
-                    _logger.LogInformation("Analysis completed for model {ModelId} in {ResponseTime}ms with {TokenCount} tokens",
-                        modelId, apiResponseTime, deserializedResponse.Usage?.TotalTokens ?? 0);
+                    _logger.LogInformation("=== Analysis Complete ===");
+                    _logger.LogInformation("Model: {ModelId}", modelId);
+                    _logger.LogInformation("Status: {Status}", analysisResult.Status);
+                    _logger.LogInformation("Response Time: {ResponseTime}ms", analysisResult.ResponseTimeMs);
+                    _logger.LogInformation("Tokens Used: {TokenCount}", analysisResult.TokenCount ?? 0);
+                    _logger.LogInformation("Response Length: {ResponseLength} characters", analysisResult.Response.Length);
+                    _logger.LogInformation("=== End Analysis Complete ===");
 
                     return analysisResult;
                 }

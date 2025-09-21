@@ -34,8 +34,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register AIService with HttpClient - keep it simple for now
-builder.Services.AddHttpClient<AIService>();
+// Register AIService with HttpClient configured with longer timeout
+builder.Services.AddHttpClient<AIService>(client =>
+{
+    client.Timeout = TimeSpan.FromMinutes(5); // 300 seconds
+    client.DefaultRequestHeaders.Accept.Clear();
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+});
 builder.Services.AddScoped<AIService>();
 
 // Configure API settings - bind the entire configuration to ApiConfiguration

@@ -41,6 +41,118 @@ class ModelComparisonApp {
         // Comparison
         document.getElementById('runComparisonBtn').addEventListener('click', () => this.runComparison());
         document.getElementById('promptInput').addEventListener('input', () => this.updateRunButtonState());
+
+        // Sidebar toggle functionality
+        this.initializeSidebarToggle();
+    }
+
+    // Initialize sidebar toggle functionality
+    initializeSidebarToggle() {
+        const desktopToggle = document.getElementById('desktopSidebarToggle');
+        const mobileToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        // Load saved state from localStorage
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+
+        if (isCollapsed) {
+            this.collapseSidebar();
+        }
+
+        // Desktop toggle
+        if (desktopToggle) {
+            desktopToggle.addEventListener('click', () => {
+                this.toggleSidebar();
+            });
+        }
+
+        // Mobile toggle
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', () => {
+                this.toggleSidebar();
+            });
+        }
+
+        // Close mobile sidebar when clicking outside
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 1023 &&
+                sidebar.classList.contains('sidebar-expanded') &&
+                !sidebar.contains(e.target) &&
+                !mobileToggle.contains(e.target)) {
+                this.collapseSidebar();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1023) {
+                // Desktop view - ensure proper grid layout
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+                mainContent.classList.remove('main-content-full-width');
+                mainContent.classList.add('main-content-expanded');
+            }
+        });
+    }
+
+    // Toggle sidebar visibility
+    toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        if (sidebar.classList.contains('sidebar-expanded')) {
+            this.collapseSidebar();
+        } else {
+            this.expandSidebar();
+        }
+    }
+
+    // Collapse sidebar
+    collapseSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        sidebar.classList.remove('sidebar-expanded');
+        sidebar.classList.add('sidebar-collapsed');
+
+        mainContent.classList.remove('main-content-expanded');
+        mainContent.classList.add('main-content-full-width');
+
+        // Save state
+        localStorage.setItem('sidebarCollapsed', 'true');
+
+        // Update toggle button text
+        this.updateToggleButtonText('Show');
+    }
+
+    // Expand sidebar
+    expandSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        sidebar.classList.remove('sidebar-collapsed');
+        sidebar.classList.add('sidebar-expanded');
+
+        mainContent.classList.remove('main-content-full-width');
+        mainContent.classList.add('main-content-expanded');
+
+        // Save state
+        localStorage.setItem('sidebarCollapsed', 'false');
+
+        // Update toggle button text
+        this.updateToggleButtonText('Hide');
+    }
+
+    // Update toggle button text
+    updateToggleButtonText(text) {
+        const desktopToggle = document.getElementById('desktopSidebarToggle');
+        if (desktopToggle) {
+            const span = desktopToggle.querySelector('span');
+            if (span) {
+                span.textContent = `Toggle Sidebar (${text})`;
+            }
+        }
     }
 
     // Load available models from backend or fallback to appsettings
@@ -50,7 +162,7 @@ class ModelComparisonApp {
             // Use the same protocol and port as the current page to avoid CORS issues
             const baseUrl = window.location.origin;
             console.log(`DEBUG: Using base URL: ${baseUrl}`);
-            
+
             const response = await fetch(`${baseUrl}/api/models/available`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +170,7 @@ class ModelComparisonApp {
 
             const data = await response.json();
             console.log('DEBUG: API response data:', data);
-            
+
             this.availableModels = {
                 nanoGPT: data.nanoGPT.models || [],
                 openRouter: data.openRouter.models || []
@@ -109,12 +221,12 @@ class ModelComparisonApp {
     displayAvailableModels() {
         console.log('DEBUG: displayAvailableModels called');
         console.log('DEBUG: Available models data:', this.availableModels);
-        
+
         // Render both providers with correct internal names
         this.renderProviderModels('nanoGPT');
         this.renderProviderModels('openRouter');
         this.updateProviderCounts();
-        
+
         console.log('DEBUG: Finished displaying available models');
     }
 
@@ -162,16 +274,16 @@ class ModelComparisonApp {
                 <div class="font-medium text-white">${model}</div>
                 <div class="text-xs text-slate-400 mt-1">${provider}</div>
             `;
-            
+
             // Add click event with proper logging
             modelCard.addEventListener('click', () => {
                 console.log(`DEBUG: Model card clicked: ${model} from ${provider}`);
                 this.selectModel(model);
             });
-            
+
             container.appendChild(modelCard);
         });
-        
+
         console.log(`DEBUG: Rendered ${models.length} models for ${provider}`);
     }
 
@@ -184,7 +296,7 @@ class ModelComparisonApp {
     // Toggle provider sections
     toggleProvider(provider) {
         console.log(`DEBUG: toggleProvider called with: ${provider}`);
-        
+
         // The provider parameter from HTML onclick is already in the correct format
         // No conversion needed since HTML uses 'nanogpt' and 'openrouter'
         const content = document.getElementById(`${provider}-models`);
@@ -194,7 +306,7 @@ class ModelComparisonApp {
             console.error(`DEBUG: Content element not found for ${provider}-models`);
             return;
         }
-        
+
         if (!arrow) {
             console.error(`DEBUG: Arrow element not found for ${provider}-arrow`);
             return;
@@ -602,7 +714,7 @@ class ModelComparisonApp {
             // Use the same protocol and port as the current page to avoid CORS issues
             const baseUrl = window.location.origin;
             console.log(`DEBUG: Using base URL for comparison: ${baseUrl}`);
-            
+
             const response = await fetch(`${baseUrl}/api/comparison/execute`, {
                 method: 'POST',
                 headers: {
@@ -624,14 +736,14 @@ class ModelComparisonApp {
 
         } catch (error) {
             console.error('Error during comparison:', error);
-            
+
             // Handle validation errors specifically
             if (error.message.includes('HTTP error! status: 400')) {
                 this.displayErrorMessage('Your request couldn\'t be processed. Please check your prompt length (keep it under 50,000 characters) and model selection.', 'validation-error');
             } else {
                 this.displayErrorMessage(`Comparison failed: ${error.message}`);
             }
-            
+
             this.setComparisonInProgress(false);
         }
     }
