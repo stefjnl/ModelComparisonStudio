@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using ModelComparisonStudio.Models;
 using ModelComparisonStudio.Services;
+using ModelComparisonStudio.Core.ValueObjects;
+using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
 
 namespace ModelComparisonStudio.Controllers
 {
@@ -162,14 +164,14 @@ namespace ModelComparisonStudio.Controllers
         /// Determines the provider from a model ID
         /// </summary>
         /// <param name="modelId">The model ID</param>
-        /// <returns>Provider name (NanoGPT or OpenRouter)</returns>
+        /// <returns>Provider name</returns>
         private string GetProviderFromModelId(string modelId)
         {
             // This is a simple heuristic - in practice you might have a more sophisticated
             // mapping or store this information in configuration
             return modelId.Contains("nano") || modelId.Contains("deepseek")
-                ? "NanoGPT"
-                : "OpenRouter";
+                ? NanoGPT
+                : OpenRouter;
         }
     }
 }

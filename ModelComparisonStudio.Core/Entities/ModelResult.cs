@@ -52,6 +52,58 @@ public class ModelResult
     private ModelResult() { }
 
     /// <summary>
+    /// Creates a model result with specified status and error message.
+    /// </summary>
+    /// <param name="modelId">The model ID that was used.</param>
+    /// <param name="response">The response from the model.</param>
+    /// <param name="responseTimeMs">Response time in milliseconds.</param>
+    /// <param name="tokenCount">Number of tokens used (optional).</param>
+    /// <param name="status">Status of the model execution ("success", "error", "timeout").</param>
+    /// <param name="errorMessage">Error message if the model failed (optional).</param>
+    /// <param name="provider">Provider name.</param>
+    /// <returns>A new model result.</returns>
+    public static ModelResult Create(
+        string modelId,
+        string response,
+        long responseTimeMs,
+        int? tokenCount = null,
+        string status = "success",
+        string errorMessage = "",
+        string provider = "")
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            throw new ArgumentException("Model ID cannot be null or empty.", nameof(modelId));
+        }
+
+        if (string.IsNullOrWhiteSpace(response))
+        {
+            throw new ArgumentException("Response cannot be null or empty.", nameof(response));
+        }
+
+        if (responseTimeMs < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(responseTimeMs), "Response time must be non-negative.");
+        }
+
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            throw new ArgumentException("Status cannot be null or empty.", nameof(status));
+        }
+
+        return new ModelResult
+        {
+            ModelId = modelId,
+            Response = response,
+            ResponseTimeMs = responseTimeMs,
+            TokenCount = tokenCount,
+            Status = status,
+            ErrorMessage = errorMessage,
+            Provider = provider
+        };
+    }
+
+    /// <summary>
     /// Creates a successful model result.
     /// </summary>
     /// <param name="modelId">The model ID that was used.</param>

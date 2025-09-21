@@ -4,18 +4,13 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Core.ValueObjects;
+using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
+using static ModelComparisonStudio.Core.ValueObjects.AIProviderUrls;
+using static ModelComparisonStudio.Core.ValueObjects.MimeTypes;
 
 namespace ModelComparisonStudio.Services
 {
-    /// <summary>
-    /// Constants for AI provider names
-    /// </summary>
-    public static class AIProviderNames
-    {
-        public const string OpenRouter = "OpenRouter";
-        public const string NanoGPT = "NanoGPT";
-    }
-
     /// <summary>
     /// Service for interacting with AI models from multiple providers
     /// </summary>
@@ -33,7 +28,7 @@ namespace ModelComparisonStudio.Services
             _apiConfiguration = apiConfiguration.Value;
             _httpClient = httpClient;
             _logger = logger;
-            
+
             // HttpClient is now configured in Program.cs with 5-minute timeout
             // Log the configuration for verification
             _logger.LogInformation("=== AIService Configuration Diagnostic ===");
@@ -41,7 +36,7 @@ namespace ModelComparisonStudio.Services
                 _httpClient.Timeout.TotalMinutes, _httpClient.Timeout.TotalSeconds);
             _logger.LogInformation("NanoGPT Configuration: {@NanoGPT}", _apiConfiguration.NanoGPT);
             _logger.LogInformation("OpenRouter Configuration: {@OpenRouter}", _apiConfiguration.OpenRouter);
-            
+
             if (_apiConfiguration.NanoGPT != null)
             {
                 _logger.LogInformation("NanoGPT API Key: {ApiKeyLength} characters",
@@ -49,7 +44,7 @@ namespace ModelComparisonStudio.Services
                 _logger.LogInformation("NanoGPT Available Models: {ModelCount}",
                     _apiConfiguration.NanoGPT.AvailableModels?.Length ?? 0);
             }
-            
+
             if (_apiConfiguration.OpenRouter != null)
             {
                 _logger.LogInformation("OpenRouter API Key: {ApiKeyLength} characters",
@@ -97,11 +92,11 @@ namespace ModelComparisonStudio.Services
                 var promptLength = prompt.Length;
                 var maxTokens = Math.Min(4000, Math.Max(1000, promptLength / 2)); // Dynamic calculation
                 if (promptLength > 2000) maxTokens = 4000; // For very large prompts, use max tokens
-                
+
                 // Use the exact format from the working curl command
                 // Map the model ID to the correct NanoGPT API model name
                 string nanoGptModelName = MapModelIdToNanoGptName(modelId);
-                
+
                 var request = new
                 {
                     model = nanoGptModelName, // Use the mapped model name
@@ -127,7 +122,7 @@ namespace ModelComparisonStudio.Services
 
                 var jsonRequest = JsonSerializer.Serialize(request);
                 _logger.LogInformation("Request JSON: {RequestJson}", jsonRequest);
-                var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
+                var content = new StringContent(jsonRequest, Encoding.UTF8, MimeTypes.ApplicationJson);
 
                 // Set up headers with proper error handling
                 _logger.LogInformation("Setting up HTTP headers for {Provider} API call", provider);
@@ -135,22 +130,22 @@ namespace ModelComparisonStudio.Services
                 {
                     _httpClient.DefaultRequestHeaders.Clear();
                     _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-                    
+
                     // Add provider-specific headers
                     if (provider == AIProviderNames.OpenRouter)
                     {
                         _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
                         _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
                         _httpClient.DefaultRequestHeaders.Accept.Clear();
-                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MimeTypes.ApplicationJson));
                     }
                     else if (provider == AIProviderNames.NanoGPT)
                     {
                         // NanoGPT requires text/event-stream accept header
                         _httpClient.DefaultRequestHeaders.Accept.Clear();
-                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(MimeTypes.TextEventStream));
                     }
-                    
+
                     _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], Accept: {AcceptHeader}",
                         _httpClient.DefaultRequestHeaders.Accept.ToString());
                 }
@@ -190,9 +185,9 @@ namespace ModelComparisonStudio.Services
                 {
                     var apiCallStopwatch = Stopwatch.StartNew();
                     _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
-                    
+
                     var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
-                    
+
                     apiCallStopwatch.Stop();
                     var apiResponseTime = apiCallStopwatch.ElapsedMilliseconds;
                     stopwatch.Stop();
@@ -208,7 +203,7 @@ namespace ModelComparisonStudio.Services
                     {
                         var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
                         var errorContentLength = errorContent?.Length ?? 0;
-                        
+
                         _logger.LogError("=== API Error Details ===");
                         _logger.LogError("Model: {ModelId}", modelId);
                         _logger.LogError("Status: {StatusCode} {ReasonPhrase}", (int)response.StatusCode, response.ReasonPhrase);
@@ -232,26 +227,26 @@ namespace ModelComparisonStudio.Services
                     // Process successful response with detailed logging
                     var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
                     var responseLength = responseJson.Length;
-                    
+
                     _logger.LogInformation("=== API Response Success ===");
                     _logger.LogInformation("Response length: {ResponseLength} characters", responseLength);
                     _logger.LogInformation("Response preview (first 500 chars): {ResponsePreview}",
                         responseLength > 500 ? responseJson.Substring(0, 500) + "..." : responseJson);
-                    
+
                     // Try to deserialize with more robust error handling and detailed logging
                     OpenRouterResponse? deserializedResponse = null;
                     try
                     {
                         _logger.LogInformation("Attempting JSON deserialization...");
                         var deserializeStopwatch = Stopwatch.StartNew();
-                        
+
                         deserializedResponse = JsonSerializer.Deserialize<OpenRouterResponse>(responseJson, new JsonSerializerOptions
                         {
                             PropertyNameCaseInsensitive = true,
                             ReadCommentHandling = JsonCommentHandling.Skip,
                             AllowTrailingCommas = true
                         });
-                        
+
                         deserializeStopwatch.Stop();
                         _logger.LogInformation("JSON deserialization completed in {DeserializeTime}ms", deserializeStopwatch.ElapsedMilliseconds);
                     }
@@ -261,7 +256,7 @@ namespace ModelComparisonStudio.Services
                         _logger.LogError(jsonEx, "JSON deserialization failed: {ErrorMessage}", jsonEx.Message);
                         _logger.LogError("Error Path: {Path}", jsonEx.Path);
                         _logger.LogError("Line: {LineNumber}, Position: {BytePositionInLine}", jsonEx.LineNumber, jsonEx.BytePositionInLine);
-                        
+
                         // Simplified error snippet logging
                         if (responseLength > 0)
                         {
@@ -295,7 +290,7 @@ namespace ModelComparisonStudio.Services
                     {
                         using var jsonDoc = JsonDocument.Parse(responseJson);
                         _logger.LogInformation("JSON Structure - Root: {RootElement}", jsonDoc.RootElement.ValueKind);
-                        
+
                         if (jsonDoc.RootElement.TryGetProperty("choices", out var choicesProp) && choicesProp.ValueKind == JsonValueKind.Array)
                         {
                             _logger.LogInformation("Choices array length: {ChoicesLength}", choicesProp.GetArrayLength());
@@ -356,7 +351,7 @@ namespace ModelComparisonStudio.Services
                     stopwatch.Stop();
                     _logger.LogError(tex, "Request timeout for model {ModelId} after {ResponseTime}ms. Prompt length: {PromptLength}",
                         modelId, stopwatch.ElapsedMilliseconds, prompt.Length);
-                    
+
                     return new AnalysisResult
                     {
                         ModelId = modelId,
@@ -371,7 +366,7 @@ namespace ModelComparisonStudio.Services
                     stopwatch.Stop();
                     _logger.LogWarning(tex, "Request cancelled for model {ModelId} after {ResponseTime}ms",
                         modelId, stopwatch.ElapsedMilliseconds);
-                    
+
                     return new AnalysisResult
                     {
                         ModelId = modelId,
@@ -386,7 +381,7 @@ namespace ModelComparisonStudio.Services
                     stopwatch.Stop();
                     _logger.LogError(hex, "HTTP request error for model {ModelId}: {ErrorMessage}. Prompt length: {PromptLength}",
                         modelId, hex.Message, prompt.Length);
-                    
+
                     return new AnalysisResult
                     {
                         ModelId = modelId,
@@ -487,10 +482,10 @@ namespace ModelComparisonStudio.Services
         {
             _logger.LogInformation("=== GetProviderInfo Debug Start ===");
             _logger.LogInformation("GetProviderInfo called for model: {ModelId}", modelId);
-            
+
             var nanoGptModels = _apiConfiguration.NanoGPT?.AvailableModels ?? Array.Empty<string>();
             var openRouterModels = _apiConfiguration.OpenRouter?.AvailableModels ?? Array.Empty<string>();
-            
+
             _logger.LogInformation("NanoGPT available models ({Count}): {Models}", nanoGptModels.Length, string.Join(", ", nanoGptModels));
             _logger.LogInformation("OpenRouter available models ({Count}): {Models}", openRouterModels.Length, string.Join(", ", openRouterModels));
 
@@ -498,7 +493,7 @@ namespace ModelComparisonStudio.Services
             // This takes priority over any suffix patterns
             bool isInNanoGPT = nanoGptModels.Any(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase));
             _logger.LogInformation("Model {ModelId} in NanoGPT models: {IsInNanoGPT}", modelId, isInNanoGPT);
-            
+
             if (isInNanoGPT)
             {
                 _logger.LogInformation("Model {ModelId} assigned to NanoGPT provider", modelId);
@@ -516,7 +511,7 @@ namespace ModelComparisonStudio.Services
             // Check if model is in OpenRouter's available models (case-insensitive)
             bool isInOpenRouter = openRouterModels.Any(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase));
             _logger.LogInformation("Model {ModelId} in OpenRouter models: {IsInOpenRouter}", modelId, isInOpenRouter);
-            
+
             if (isInOpenRouter)
             {
                 _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider", modelId);
@@ -538,13 +533,13 @@ namespace ModelComparisonStudio.Services
             // For NanoGPT API, we need to use the exact model ID from configuration
             // Remove any suffixes that might cause issues with the API
             var baseModelId = modelId.Split(':')[0]; // Remove any suffix after colon
-            
+
             // Special handling for models that need specific mapping
             if (baseModelId.Contains("deepseek", StringComparison.OrdinalIgnoreCase))
                 return "deepseek-chat"; // This works as confirmed by successful calls
             else if (baseModelId.Contains("gpt", StringComparison.OrdinalIgnoreCase))
                 return "chatgpt-4o-latest"; // Map GPT models to the working model
-            
+
             // For other models, try using the base model ID as-is
             // If this doesn't work, we may need to get the actual NanoGPT API model names
             return baseModelId;

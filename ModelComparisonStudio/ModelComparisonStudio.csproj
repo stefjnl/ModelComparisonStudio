@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ModelComparisonStudio.ServiceDefaults\ModelComparisonStudio.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\ModelComparisonStudio.Core\ModelComparisonStudio.Core.csproj" />
   </ItemGroup>
 
 </Project>
