@@ -375,27 +375,27 @@ body {
 }
 
 .provider-content.max-h-96 {
-    max-height: 480px;
-    overflow-y: auto;
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 /* Custom scrollbar for provider content */
 .provider-content::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 
 .provider-content::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.3);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .provider-content::-webkit-scrollbar-thumb {
-    background: var(--color-primary);
-    border-radius: 3px;
+  background: var(--color-primary);
+  border-radius: 3px;
 }
 
 .provider-content::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary-light);
+  background: var(--color-primary-light);
 }
 
 .provider-header svg {
@@ -786,6 +786,106 @@ body {
   border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
 
+/* Collapsible Sidebar Styles */
+.sidebar-expanded {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-collapsed {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 40;
+}
+
+.main-content-expanded {
+  grid-column: span 9 / span 9;
+}
+
+.main-content-full-width {
+  grid-column: span 12 / span 12;
+}
+
+/* Mobile sidebar overlay */
+@media (max-width: 1023px) {
+  .sidebar-expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 320px;
+    height: 100vh;
+    z-index: 50;
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+    overflow-y: auto;
+    padding-top: 5rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .sidebar-collapsed {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .main-content-expanded,
+  .main-content-full-width {
+    grid-column: span 12 / span 12;
+  }
+
+  /* Mobile overlay backdrop */
+  .sidebar-expanded::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: -1;
+  }
+}
+
+/* Smooth transitions for sidebar toggle */
+#sidebar {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#mainContent {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Toggle button animations */
+#desktopSidebarToggle,
+#sidebarToggle {
+  transition: all 0.3s ease;
+}
+
+#desktopSidebarToggle:hover,
+#sidebarToggle:hover {
+  transform: scale(1.05);
+}
+
+#desktopSidebarToggle:active,
+#sidebarToggle:active {
+  transform: scale(0.95);
+}
+
+/* Enhanced toggle button states */
+.sidebar-collapsed #desktopSidebarToggle .toggle-text::after {
+  content: 'Show';
+}
+
+.sidebar-expanded #desktopSidebarToggle .toggle-text::after {
+  content: 'Hide';
+}
+
 /* Responsive Enhancements */
 @media (max-width: 768px) {
   .available-models-grid {
@@ -859,33 +959,35 @@ body {
 
 /* Animations for error/success messages */
 @keyframes slideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideOut {
-    from {
-        transform: translateY(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
 }
 
 .error-message.validation-error {
-    background-color: #dc2626 !important;
-    border-left-color: #fca5a5 !important;
+  background-color: #dc2626 !important;
+  border-left-color: #fca5a5 !important;
 }
 
 .success-message {
-    background-color: #16a34a !important;
-    border-left-color: #4ade80 !important;
+  background-color: #16a34a !important;
+  border-left-color: #4ade80 !important;
 }
