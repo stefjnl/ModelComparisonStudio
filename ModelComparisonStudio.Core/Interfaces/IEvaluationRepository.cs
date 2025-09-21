@@ -62,6 +62,15 @@ public interface IEvaluationRepository
     Task<IReadOnlyList<Evaluation>> GetByPromptIdAsync(string promptId, int skip = 0, int take = 50, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets an evaluation by prompt ID and model ID.
+    /// </summary>
+    /// <param name="promptId">The prompt ID.</param>
+    /// <param name="modelId">The model ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The evaluation if found, null otherwise.</returns>
+    Task<Evaluation?> GetByPromptIdAndModelIdAsync(string promptId, string modelId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets evaluations within a date range.
     /// </summary>
     /// <param name="startDate">The start date of the range.</param>

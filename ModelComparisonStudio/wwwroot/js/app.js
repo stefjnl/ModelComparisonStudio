@@ -1133,7 +1133,7 @@ class ModelComparisonApp {
             }
 
             const baseUrl = window.location.origin;
-            const response = await fetch(`${baseUrl}/api/evaluations`, {
+            const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1154,7 +1154,7 @@ class ModelComparisonApp {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 let errorMessage = `HTTP error! status: ${response.status}`;
-                
+
                 if (errorData.detail) {
                     errorMessage = errorData.detail;
                 } else if (errorData.errors) {
@@ -1162,12 +1162,12 @@ class ModelComparisonApp {
                 } else if (errorData.error) {
                     errorMessage = errorData.error;
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
             const result = await response.json();
-            
+
             // Update evaluation with server data
             evaluation.id = result.id;
             evaluation.timestamp = result.timestamp;
@@ -1325,7 +1325,7 @@ class ModelComparisonApp {
             this.showCommentSavingState(textarea);
 
             const baseUrl = window.location.origin;
-            const response = await fetch(`${baseUrl}/api/evaluations`, {
+            const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1346,7 +1346,7 @@ class ModelComparisonApp {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 let errorMessage = `HTTP error! status: ${response.status}`;
-                
+
                 if (errorData.detail) {
                     errorMessage = errorData.detail;
                 } else if (errorData.errors) {
@@ -1354,7 +1354,7 @@ class ModelComparisonApp {
                 } else if (errorData.error) {
                     errorMessage = errorData.error;
                 }
-                
+
                 throw new Error(errorMessage);
             }
 

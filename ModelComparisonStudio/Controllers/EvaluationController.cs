@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ModelComparisonStudio.Application.DTOs;
 using ModelComparisonStudio.Application.Services;
 using ModelComparisonStudio.Core.Interfaces;
+using System.Text;
 
 namespace ModelComparisonStudio.Controllers;
 
@@ -37,8 +38,24 @@ public class EvaluationController : ControllerBase
     {
         try
         {
+            // Enable buffering to allow reading request body multiple times
+            Request.EnableBuffering();
+            
+            // Debug logging to see what's actually being received
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
+            {
+                _logger.LogInformation("CreateEvaluation called. Request body received: {RequestBody}",
+                    await reader.ReadToEndAsync());
+            }
+            
+            // Reset the request body stream position for model binding
+            Request.Body.Position = 0;
+
             if (!ModelState.IsValid)
             {
+                _logger.LogWarning("ModelState invalid. Errors: {Errors}",
+                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+
                 return BadRequest(new
                 {
                     type = "validation_error",
@@ -50,7 +67,7 @@ public class EvaluationController : ControllerBase
             }
 
             var evaluation = await _evaluationService.CreateEvaluationAsync(dto, cancellationToken);
-            
+
             return CreatedAtAction(
                 nameof(GetEvaluationById),
                 new { evaluationId = evaluation.Id },
@@ -77,6 +94,85 @@ public class EvaluationController : ControllerBase
                 title = "Internal Server Error",
                 status = 500,
                 detail = "An unexpected error occurred while creating the evaluation",
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    /// <summary>
+    /// Creates or updates an evaluation based on prompt ID and model ID.
+    /// If an evaluation exists for the same prompt and model, it will be updated.
+    /// Otherwise, a new evaluation will be created.
+    /// </summary>
+    /// <param name="dto">The evaluation data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The created or updated evaluation.</returns>
+    [HttpPost("upsert")]
+    [ProducesResponseType(typeof(EvaluationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EvaluationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpsertEvaluation(
+        [FromBody] CreateEvaluationDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Enable buffering to allow reading request body multiple times
+            Request.EnableBuffering();
+            
+            // Debug logging to see what's actually being received
+            using (var reader = new StreamReader(Request.Body, Encoding.UTF8, leaveOpen: true))
+            {
+                _logger.LogInformation("UpsertEvaluation called. Request body received: {RequestBody}",
+                    await reader.ReadToEndAsync());
+            }
+            
+            // Reset the request body stream position for model binding
+            Request.Body.Position = 0;
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("ModelState invalid. Errors: {Errors}",
+                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+
+                return BadRequest(new
+                {
+                    type = "validation_error",
+                    title = "Validation Error",
+                    status = 400,
+                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage),
+                    traceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            var evaluation = await _evaluationService.UpsertEvaluationAsync(dto, cancellationToken);
+
+            // Always return 200 OK for upsert operations
+            // The upsert operation handles both create and update internally
+            return Ok(evaluation);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when upserting evaluation");
+            return BadRequest(new
+            {
+                type = "validation_error",
+                title = "Validation Error",
+                status = 400,
+                detail = ex.Message,
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error upserting evaluation");
+            return StatusCode(500, new
+            {
+                type = "internal_error",
+                title = "Internal Server Error",
+                status = 500,
+                detail = "An unexpected error occurred while upserting the evaluation",
                 traceId = HttpContext.TraceIdentifier
             });
         }

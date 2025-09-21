@@ -271,6 +271,88 @@ public class EvaluationApplicationService
     }
 
     /// <summary>
+    /// Creates or updates an evaluation based on prompt ID and model ID.
+    /// If an evaluation exists for the same prompt and model, it will be updated.
+    /// Otherwise, a new evaluation will be created.
+    /// </summary>
+    /// <param name="dto">The evaluation data.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The created or updated evaluation DTO.</returns>
+    public async Task<EvaluationDto> UpsertEvaluationAsync(
+        CreateEvaluationDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Upserting evaluation for model {ModelId} with prompt {PromptId}",
+            dto.ModelId, dto.PromptId);
+
+        try
+        {
+            // Check if evaluation already exists
+            var existingEvaluation = await _evaluationRepository.GetByPromptIdAndModelIdAsync(
+                dto.PromptId, dto.ModelId, cancellationToken);
+
+            if (existingEvaluation != null)
+            {
+                // Update existing evaluation
+                _logger.LogInformation("Updating existing evaluation {EvaluationId}", existingEvaluation.Id);
+
+                // Update rating if provided
+                if (dto.Rating.HasValue)
+                {
+                    existingEvaluation.UpdateRating(dto.Rating.Value);
+                }
+
+                // Update comment if provided
+                if (!string.IsNullOrWhiteSpace(dto.Comment))
+                {
+                    existingEvaluation.UpdateComment(dto.Comment);
+                }
+
+                var updatedEvaluation = await _evaluationRepository.UpdateAsync(existingEvaluation, cancellationToken);
+                _logger.LogInformation("Evaluation {EvaluationId} updated successfully", existingEvaluation.Id);
+
+                return EvaluationDto.FromDomainEvaluation(updatedEvaluation);
+            }
+            else
+            {
+                // Create new evaluation
+                _logger.LogInformation("Creating new evaluation for model {ModelId} with prompt {PromptId}",
+                    dto.ModelId, dto.PromptId);
+
+                var evaluation = Evaluation.Create(
+                    dto.PromptId,
+                    dto.PromptText,
+                    dto.ModelId,
+                    dto.ResponseTimeMs, // Already has default value of 1000
+                    dto.TokenCount);
+
+                // Set rating if provided
+                if (dto.Rating.HasValue)
+                {
+                    evaluation.UpdateRating(dto.Rating.Value);
+                }
+
+                // Set comment if provided
+                if (!string.IsNullOrWhiteSpace(dto.Comment))
+                {
+                    evaluation.UpdateComment(dto.Comment);
+                }
+
+                var savedEvaluation = await _evaluationRepository.SaveAsync(evaluation, cancellationToken);
+
+                _logger.LogInformation("Evaluation {EvaluationId} created successfully", savedEvaluation.Id);
+
+                return EvaluationDto.FromDomainEvaluation(savedEvaluation);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to upsert evaluation for model {ModelId}", dto.ModelId);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Deletes an evaluation by ID.
     /// </summary>
     /// <param name="evaluationId">The evaluation ID.</param>

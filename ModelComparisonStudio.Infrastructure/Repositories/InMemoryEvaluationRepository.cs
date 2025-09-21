@@ -198,6 +198,22 @@ public class InMemoryEvaluationRepository : IEvaluationRepository
         return Task.FromResult(count);
     }
 
+    /// <inheritdoc />
+    public Task<Evaluation?> GetByPromptIdAndModelIdAsync(string promptId, string modelId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(promptId))
+            throw new ArgumentException("Prompt ID cannot be null or empty", nameof(promptId));
+        if (string.IsNullOrWhiteSpace(modelId))
+            throw new ArgumentException("Model ID cannot be null or empty", nameof(modelId));
+
+        var evaluation = _evaluations.Values
+            .FirstOrDefault(e =>
+                e.PromptId.Equals(promptId, StringComparison.OrdinalIgnoreCase) &&
+                e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase));
+
+        return Task.FromResult(evaluation);
+    }
+
     /// <summary>
     /// Clears all evaluations from the repository (for testing purposes).
     /// </summary>

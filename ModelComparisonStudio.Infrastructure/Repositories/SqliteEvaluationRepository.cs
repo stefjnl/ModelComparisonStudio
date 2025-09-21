@@ -169,7 +169,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .Where(e => e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase))
+                .Where(e => e.ModelId.ToLower() == modelId.ToLower())
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -197,7 +197,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .Where(e => e.PromptId.Equals(promptId, StringComparison.OrdinalIgnoreCase))
+                .Where(e => e.PromptId.ToLower() == promptId.ToLower())
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -295,7 +295,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .Where(e => e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase) && e.Rating.HasValue)
+                .Where(e => e.ModelId.ToLower() == modelId.ToLower() && e.Rating.HasValue)
                 .AverageAsync(e => e.Rating.Value, cancellationToken);
         }
         catch (Exception ex)
@@ -316,11 +316,36 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .CountAsync(e => e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase), cancellationToken);
+                .CountAsync(e => e.ModelId.ToLower() == modelId.ToLower(), cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get evaluation count for model {ModelId}", modelId);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<Evaluation?> GetByPromptIdAndModelIdAsync(string promptId, string modelId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(promptId))
+            throw new ArgumentException("Prompt ID cannot be null or empty", nameof(promptId));
+        if (string.IsNullOrWhiteSpace(modelId))
+            throw new ArgumentException("Model ID cannot be null or empty", nameof(modelId));
+
+        _logger.LogDebug("Getting evaluation for prompt {PromptId} and model {ModelId}", promptId, modelId);
+
+        try
+        {
+            return await _context.Evaluations
+                .FirstOrDefaultAsync(e =>
+                    e.PromptId.ToLower() == promptId.ToLower() &&
+                    e.ModelId.ToLower() == modelId.ToLower(),
+                    cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get evaluation for prompt {PromptId} and model {ModelId}", promptId, modelId);
             throw;
         }
     }

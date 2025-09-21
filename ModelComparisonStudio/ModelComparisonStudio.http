@@ -4,3 +4,50 @@ GET {{ModelComparisonStudio_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
+
+# Test the upsert evaluation endpoint with valid JSON
+POST {{ModelComparisonStudio_HostAddress}}/api/evaluations/upsert
+Content-Type: application/json
+
+{
+  "promptId": "test-prompt-1",
+  "promptText": "What is the capital of France?",
+  "modelId": "test-model-1",
+  "responseTimeMs": 1500,
+  "tokenCount": 25
+}
+
+###
+
+# Test the upsert evaluation endpoint with invalid JSON
+POST {{ModelComparisonStudio_HostAddress}}/api/evaluations/upsert
+Content-Type: application/json
+
+{
+  "promptId": "test-prompt-1",
+  "promptText": "What is the capital of France?",
+  "modelId": "test-model-1",
+  "responseTimeMs": 1500,
+  "tokenCount": 25,
+  // Missing closing brace - invalid JSON
+
+###
+
+# Test the upsert evaluation endpoint without Content-Type header
+POST {{ModelComparisonStudio_HostAddress}}/api/evaluations/upsert
+
+{
+  "promptId": "test-prompt-1",
+  "promptText": "What is the capital of France?",
+  "modelId": "test-model-1",
+  "responseTimeMs": 1500,
+  "tokenCount": 25
+}
+
+###
+
+# Test the upsert evaluation endpoint with empty body
+POST {{ModelComparisonStudio_HostAddress}}/api/evaluations/upsert
+Content-Type: application/json
+
+###
