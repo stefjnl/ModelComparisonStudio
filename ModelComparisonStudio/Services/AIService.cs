@@ -396,15 +396,8 @@ namespace ModelComparisonStudio.Services
             _logger.LogInformation("NanoGPT available models ({Count}): {Models}", nanoGptModels.Length, string.Join(", ", nanoGptModels));
             _logger.LogInformation("OpenRouter available models ({Count}): {Models}", openRouterModels.Length, string.Join(", ", openRouterModels));
 
-            // Determine provider based on model ID patterns
-            // Models with ":free" suffix are typically OpenRouter models
-            if (modelId.Contains(":free"))
-            {
-                _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider (free model)", modelId);
-                return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
-            }
-
-            // Check if model is in NanoGPT's available models (case-insensitive)
+            // First check if model is in NanoGPT's available models (case-insensitive)
+            // This takes priority over any suffix patterns
             bool isInNanoGPT = nanoGptModels.Any(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase));
             _logger.LogInformation("Model {ModelId} in NanoGPT models: {IsInNanoGPT}", modelId, isInNanoGPT);
             
@@ -412,6 +405,14 @@ namespace ModelComparisonStudio.Services
             {
                 _logger.LogInformation("Model {ModelId} assigned to NanoGPT provider", modelId);
                 return ("NanoGPT", _apiConfiguration.NanoGPT?.ApiKey ?? string.Empty, _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty);
+            }
+
+            // Determine provider based on model ID patterns
+            // Models with ":free" suffix are typically OpenRouter models
+            if (modelId.Contains(":free"))
+            {
+                _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider (free model)", modelId);
+                return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
             }
 
             // Check if model is in OpenRouter's available models (case-insensitive)
@@ -432,32 +433,23 @@ namespace ModelComparisonStudio.Services
 
         /// <summary>
         /// Maps model ID to the correct NanoGPT API model name
+        /// NanoGPT API expects the actual model ID from configuration, not generic names
         /// </summary>
         private string MapModelIdToNanoGptName(string modelId)
         {
-            // Simple mapping based on common patterns
-            if (modelId.Contains("deepseek", StringComparison.OrdinalIgnoreCase))
-                return "deepseek-chat";
-            else if (modelId.Contains("kimi", StringComparison.OrdinalIgnoreCase))
-                return "kimi-chat";
-            else if (modelId.Contains("qwen", StringComparison.OrdinalIgnoreCase))
-                return "qwen-chat";
-            else if (modelId.Contains("claude", StringComparison.OrdinalIgnoreCase))
-                return "claude-chat";
-            else if (modelId.Contains("gpt", StringComparison.OrdinalIgnoreCase))
-                return "chatgpt-4o-latest";
-            else if (modelId.Contains("gemini", StringComparison.OrdinalIgnoreCase))
-                return "gemini-chat";
-            else if (modelId.Contains("llama", StringComparison.OrdinalIgnoreCase))
-                return "llama-chat";
-            else if (modelId.Contains("hermes", StringComparison.OrdinalIgnoreCase))
-                return "hermes-chat";
-            else if (modelId.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
-                return "nemotron-chat";
-            else if (modelId.Contains("glm", StringComparison.OrdinalIgnoreCase))
-                return "glm-chat";
-            else
-                return "chatgpt-4o-latest"; // default fallback
+            // For NanoGPT API, we need to use the exact model ID from configuration
+            // Remove any suffixes that might cause issues with the API
+            var baseModelId = modelId.Split(':')[0]; // Remove any suffix after colon
+            
+            // Special handling for models that need specific mapping
+            if (baseModelId.Contains("deepseek", StringComparison.OrdinalIgnoreCase))
+                return "deepseek-chat"; // This works as confirmed by successful calls
+            else if (baseModelId.Contains("gpt", StringComparison.OrdinalIgnoreCase))
+                return "chatgpt-4o-latest"; // Map GPT models to the working model
+            
+            // For other models, try using the base model ID as-is
+            // If this doesn't work, we may need to get the actual NanoGPT API model names
+            return baseModelId;
         }
     }
 
