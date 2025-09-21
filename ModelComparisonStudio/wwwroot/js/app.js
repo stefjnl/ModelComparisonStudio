@@ -1,4 +1,4 @@
-// Model Comparison Studio - Enhanced JavaScript with Model Loading
+// Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
 class ModelComparisonApp {
     constructor() {
@@ -8,6 +8,9 @@ class ModelComparisonApp {
             openRouter: []
         };
         this.currentComparison = null;
+        this.evaluations = new Map(); // Store evaluations by modelId
+        this.unsavedChanges = false;
+        this.commentDebounceTimers = new Map();
 
         this.initializeEventListeners();
 
@@ -24,6 +27,14 @@ class ModelComparisonApp {
                 this.loadAvailableModels();
             }, 100); // Small delay for any remaining async operations
         }
+
+        // Set up beforeunload handler for unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (this.unsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved evaluation changes. Are you sure you want to leave?';
+            }
+        });
 
         this.updateUI();
     }
@@ -777,6 +788,11 @@ class ModelComparisonApp {
         console.log('DEBUG: displayComparisonResults called with:', result);
         console.log('DEBUG: Number of results:', result.results.length);
 
+        // Store current comparison data for evaluations
+        this.currentComparison = result;
+        const prompt = document.getElementById('promptInput').value.trim();
+        const promptId = this.generatePromptId(prompt);
+
         // Clear existing results
         const resultsContainer = document.getElementById('comparisonResults');
         if (!resultsContainer) {
@@ -789,7 +805,7 @@ class ModelComparisonApp {
 
         // Create vertical stack layout for each model result
         result.results.forEach((modelResult, index) => {
-            const modelPanel = this.createModelPanel(modelResult, index);
+            const modelPanel = this.createModelPanel(modelResult, index, promptId, prompt);
             resultsContainer.appendChild(modelPanel);
         });
 
@@ -800,8 +816,20 @@ class ModelComparisonApp {
         this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
     }
 
+    // Generate a unique ID for the prompt
+    generatePromptId(prompt) {
+        // Simple hash function for prompt ID generation
+        let hash = 0;
+        for (let i = 0; i < prompt.length; i++) {
+            const char = prompt.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return `prompt_${Math.abs(hash)}`;
+    }
+
     // Create a single model panel for the vertical layout
-    createModelPanel(modelResult, index) {
+    createModelPanel(modelResult, index, promptId, promptText) {
         const panel = document.createElement('div');
         panel.className = 'bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl hover:shadow-modern-2xl transition-all duration-300';
 
@@ -812,8 +840,11 @@ class ModelComparisonApp {
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
                 <h3 class="font-semibold text-purple-300 text-lg">${modelResult.modelId}</h3>
                 <div class="flex items-center gap-2">
-                    <div class="text-sm text-slate-400 font-mono">-</div>
-                    <div class="star-rating flex gap-1">
+                    <div class="text-sm text-slate-400 font-mono metrics-display">-</div>
+                    <div class="star-rating flex gap-1"
+                         data-model-id="${modelResult.modelId}"
+                         data-prompt-id="${promptId}"
+                         data-prompt-text="${this.escapeHtml(promptText)}">
                         ${starRatingHtml}
                     </div>
                 </div>
@@ -823,22 +854,35 @@ class ModelComparisonApp {
             </div>
             <div class="space-y-4">
                 <div class="rating-section">
-                    <textarea placeholder="Add your comments about this model's response..." class="w-full p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200"></textarea>
+                    <textarea placeholder="Add your comments about this model's response..."
+                              class="w-full p-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 comment-textarea"
+                              data-model-id="${modelResult.modelId}"
+                              data-prompt-id="${promptId}"
+                              data-prompt-text="${this.escapeHtml(promptText)}"></textarea>
                 </div>
             </div>
         `;
 
         // Populate the panel with actual data
-        this.populateModelPanel(panel, modelResult);
+        this.populateModelPanel(panel, modelResult, promptId, promptText);
 
         return panel;
     }
 
+    // Helper to escape HTML for data attributes
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Populate a single model panel with data
-    populateModelPanel(panel, modelResult) {
+    populateModelPanel(panel, modelResult, promptId, promptText) {
         const content = panel.querySelector('.response-content');
         const loading = panel.querySelector('.loading');
-        const metrics = panel.querySelector('.text-sm');
+        const metrics = panel.querySelector('.metrics-display');
+        const starsContainer = panel.querySelector('.star-rating');
+        const commentTextarea = panel.querySelector('.comment-textarea');
 
         if (!content) {
             console.error('DEBUG: No .response-content found in panel');
@@ -872,10 +916,36 @@ class ModelComparisonApp {
             content.style.fontStyle = 'normal';
         }
 
-        // Set up star rating interaction
-        const starsContainer = panel.querySelector('.star-rating');
+        // Set up star rating interaction with evaluation context
         if (starsContainer) {
-            this.setupStarRating(starsContainer);
+            const modelId = starsContainer.getAttribute('data-model-id');
+            const promptId = starsContainer.getAttribute('data-prompt-id');
+            const promptText = starsContainer.getAttribute('data-prompt-text');
+            
+            // Check if we already have an evaluation for this model/prompt
+            const evaluationKey = `${promptId}_${modelId}`;
+            if (this.evaluations.has(evaluationKey)) {
+                const evaluation = this.evaluations.get(evaluationKey);
+                this.updateStarRatingUI(starsContainer, evaluation.rating || 0);
+            }
+            
+            this.setupStarRating(starsContainer, modelId, promptId, promptText);
+        }
+
+        // Set up comment system
+        if (commentTextarea) {
+            const modelId = commentTextarea.getAttribute('data-model-id');
+            const promptId = commentTextarea.getAttribute('data-prompt-id');
+            const promptText = commentTextarea.getAttribute('data-prompt-text');
+            
+            // Load existing comment if available
+            const evaluationKey = `${promptId}_${modelId}`;
+            if (this.evaluations.has(evaluationKey)) {
+                const evaluation = this.evaluations.get(evaluationKey);
+                commentTextarea.value = evaluation.comment || '';
+            }
+            
+            this.setupCommentSystem(commentTextarea, modelId, promptId, promptText);
         }
     }
 
@@ -1005,22 +1075,352 @@ class ModelComparisonApp {
         return starsHtml;
     }
 
-    setupStarRating(container) {
+    setupStarRating(container, modelId, promptId, promptText) {
         const stars = container.querySelectorAll('.star');
         stars.forEach(star => {
-            star.addEventListener('click', (e) => {
+            star.addEventListener('click', async (e) => {
                 const rating = parseInt(e.target.getAttribute('data-rating'));
-                this.updateStarRating(container, rating);
+                await this.handleRatingChange(modelId, promptId, promptText, rating, container);
             });
         });
     }
 
-    updateStarRating(container, rating) {
+    async handleRatingChange(modelId, promptId, promptText, rating, container) {
+        // Update UI immediately for better UX
+        this.updateStarRatingUI(container, rating);
+        
+        // Create or update evaluation
+        const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
+        evaluation.rating = rating;
+        evaluation.saved = false;
+        this.unsavedChanges = true;
+        
+        // Save to backend
+        await this.saveEvaluation(evaluation, container);
+    }
+
+    updateStarRatingUI(container, rating) {
         const stars = container.querySelectorAll('.star');
         stars.forEach((star, index) => {
             const starRating = index + 1;
             star.classList.toggle('active', starRating <= rating);
         });
+    }
+
+    getOrCreateEvaluation(modelId, promptId, promptText) {
+        const key = `${promptId}_${modelId}`;
+        if (!this.evaluations.has(key)) {
+            this.evaluations.set(key, {
+                promptId: promptId,
+                promptText: promptText,
+                modelId: modelId,
+                rating: null,
+                comment: '',
+                responseTime: this.currentComparison?.results?.find(r => r.modelId === modelId)?.responseTimeMs || undefined,
+                tokenCount: this.currentComparison?.results?.find(r => r.modelId === modelId)?.tokenCount || 0,
+                timestamp: new Date().toISOString(),
+                saved: false
+            });
+        }
+        return this.evaluations.get(key);
+    }
+
+    async saveEvaluation(evaluation, container = null) {
+        try {
+            // Show saving state
+            if (container) {
+                this.showSavingState(container);
+            }
+
+            const baseUrl = window.location.origin;
+            const response = await fetch(`${baseUrl}/api/evaluations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    promptId: evaluation.promptId,
+                    promptText: evaluation.promptText,
+                    modelId: evaluation.modelId,
+                    rating: evaluation.rating,
+                    comment: evaluation.comment,
+                    responseTime: evaluation.responseTime,
+                    tokenCount: evaluation.tokenCount,
+                    timestamp: evaluation.timestamp,
+                    saved: evaluation.saved
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.errors) {
+                    errorMessage = Object.values(errorData.errors).flat().join(', ');
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            
+            // Update evaluation with server data
+            evaluation.id = result.id;
+            evaluation.timestamp = result.timestamp;
+            evaluation.saved = true;
+            this.unsavedChanges = false;
+
+            // Show success state
+            if (container) {
+                this.showSavedState(container);
+            }
+
+            console.log('Evaluation saved successfully:', evaluation);
+
+        } catch (error) {
+            console.error('Error saving evaluation:', error);
+            if (container) {
+                this.showErrorState(container, error.message);
+            }
+            // Keep evaluation as unsaved
+            evaluation.saved = false;
+            this.unsavedChanges = true;
+        }
+    }
+
+    showSavingState(container) {
+        const stars = container.querySelectorAll('.star');
+        stars.forEach(star => {
+            star.style.opacity = '0.7';
+            star.style.cursor = 'wait';
+        });
+        
+        // Add saving indicator
+        let savingIndicator = container.querySelector('.saving-indicator');
+        if (!savingIndicator) {
+            savingIndicator = document.createElement('div');
+            savingIndicator.className = 'saving-indicator text-xs text-orange-400 mt-1';
+            savingIndicator.textContent = 'Saving...';
+            container.appendChild(savingIndicator);
+        }
+    }
+
+    showSavedState(container) {
+        const stars = container.querySelectorAll('.star');
+        stars.forEach(star => {
+            star.style.opacity = '1';
+            star.style.cursor = 'pointer';
+        });
+        
+        // Update saving indicator to saved
+        const savingIndicator = container.querySelector('.saving-indicator');
+        if (savingIndicator) {
+            savingIndicator.textContent = 'Saved ✓';
+            savingIndicator.className = 'saving-indicator text-xs text-green-400 mt-1';
+            
+            // Remove after 2 seconds
+            setTimeout(() => {
+                if (savingIndicator.parentNode) {
+                    savingIndicator.remove();
+                }
+            }, 2000);
+        }
+    }
+
+    showErrorState(container, errorMessage = null) {
+        const stars = container.querySelectorAll('.star');
+        stars.forEach(star => {
+            star.style.opacity = '1';
+            star.style.cursor = 'pointer';
+        });
+        
+        // Show error indicator
+        let errorIndicator = container.querySelector('.error-indicator');
+        if (!errorIndicator) {
+            errorIndicator = document.createElement('div');
+            errorIndicator.className = 'error-indicator text-xs text-red-400 mt-1';
+            errorIndicator.style.cursor = 'pointer';
+            
+            errorIndicator.addEventListener('click', () => {
+                const modelId = container.getAttribute('data-model-id');
+                const promptId = container.getAttribute('data-prompt-id');
+                const promptText = container.getAttribute('data-prompt-text');
+                const rating = parseInt(container.getAttribute('data-current-rating'));
+                
+                if (modelId && promptId && promptText && rating) {
+                    this.handleRatingChange(modelId, promptId, promptText, rating, container);
+                }
+            });
+            
+            container.appendChild(errorIndicator);
+        }
+        
+        // Update error message if provided
+        if (errorMessage) {
+            errorIndicator.textContent = `Error: ${errorMessage} - click to retry`;
+        } else {
+            errorIndicator.textContent = 'Error saving - click to retry';
+        }
+    }
+
+    // Comment system methods
+    setupCommentSystem(textarea, modelId, promptId, promptText) {
+        // Store references for debouncing
+        textarea.setAttribute('data-model-id', modelId);
+        textarea.setAttribute('data-prompt-id', promptId);
+        textarea.setAttribute('data-prompt-text', promptText);
+
+        textarea.addEventListener('input', (e) => {
+            this.handleCommentChange(e.target, modelId, promptId, promptText);
+        });
+
+        textarea.addEventListener('blur', (e) => {
+            this.handleCommentBlur(e.target, modelId, promptId, promptText);
+        });
+    }
+
+    handleCommentChange(textarea, modelId, promptId, promptText) {
+        const comment = textarea.value.trim();
+        
+        // Clear existing timer
+        const key = `${promptId}_${modelId}_comment`;
+        if (this.commentDebounceTimers.has(key)) {
+            clearTimeout(this.commentDebounceTimers.get(key));
+        }
+
+        // Create or update evaluation
+        const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
+        evaluation.comment = comment;
+        evaluation.saved = false;
+        this.unsavedChanges = true;
+
+        // Show saving indicator
+        this.showCommentSavingState(textarea);
+
+        // Set debounce timer for auto-save
+        const timer = setTimeout(async () => {
+            await this.saveCommentEvaluation(evaluation, textarea);
+        }, 500);
+
+        this.commentDebounceTimers.set(key, timer);
+    }
+
+    handleCommentBlur(textarea, modelId, promptId, promptText) {
+        const comment = textarea.value.trim();
+        const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
+        
+        if (comment !== evaluation.comment) {
+            evaluation.comment = comment;
+            evaluation.saved = false;
+            this.saveCommentEvaluation(evaluation, textarea);
+        }
+    }
+
+    async saveCommentEvaluation(evaluation, textarea) {
+        try {
+            this.showCommentSavingState(textarea);
+
+            const baseUrl = window.location.origin;
+            const response = await fetch(`${baseUrl}/api/evaluations`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    promptId: evaluation.promptId,
+                    promptText: evaluation.promptText,
+                    modelId: evaluation.modelId,
+                    rating: evaluation.rating,
+                    comment: evaluation.comment,
+                    responseTime: evaluation.responseTime,
+                    tokenCount: evaluation.tokenCount,
+                    timestamp: evaluation.timestamp,
+                    saved: evaluation.saved
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.errors) {
+                    errorMessage = Object.values(errorData.errors).flat().join(', ');
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+                
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            evaluation.id = result.id;
+            evaluation.timestamp = result.timestamp;
+            evaluation.saved = true;
+            this.unsavedChanges = false;
+
+            this.showCommentSavedState(textarea);
+
+        } catch (error) {
+            console.error('Error saving comment:', error);
+            this.showCommentErrorState(textarea, error.message);
+            evaluation.saved = false;
+            this.unsavedChanges = true;
+        }
+    }
+
+    showCommentSavingState(textarea) {
+        let indicator = textarea.parentNode.querySelector('.comment-saving-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'comment-saving-indicator text-xs text-orange-400 mt-1';
+            textarea.parentNode.appendChild(indicator);
+        }
+        indicator.textContent = 'Saving...';
+    }
+
+    showCommentSavedState(textarea) {
+        const indicator = textarea.parentNode.querySelector('.comment-saving-indicator');
+        if (indicator) {
+            indicator.textContent = 'Saved ✓';
+            indicator.className = 'comment-saving-indicator text-xs text-green-400 mt-1';
+            
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.remove();
+                }
+            }, 2000);
+        }
+    }
+
+    showCommentErrorState(textarea, errorMessage = null) {
+        const indicator = textarea.parentNode.querySelector('.comment-saving-indicator');
+        if (indicator) {
+            if (errorMessage) {
+                indicator.textContent = `Error: ${errorMessage} - click to retry`;
+            } else {
+                indicator.textContent = 'Error saving - click to retry';
+            }
+            indicator.className = 'comment-saving-indicator text-xs text-red-400 mt-1 cursor-pointer';
+            
+            indicator.addEventListener('click', () => {
+                const modelId = textarea.getAttribute('data-model-id');
+                const promptId = textarea.getAttribute('data-prompt-id');
+                const promptText = textarea.getAttribute('data-prompt-text');
+                const comment = textarea.value.trim();
+                
+                if (modelId && promptId && promptText) {
+                    const evaluation = this.getOrCreateEvaluation(modelId, promptId, promptText);
+                    evaluation.comment = comment;
+                    this.saveCommentEvaluation(evaluation, textarea);
+                }
+            });
+        }
     }
 }
 

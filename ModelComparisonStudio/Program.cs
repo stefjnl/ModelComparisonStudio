@@ -1,7 +1,8 @@
+using ModelComparisonStudio.Application.Services;
 using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Core.Interfaces;
+using ModelComparisonStudio.Infrastructure.Repositories;
 using ModelComparisonStudio.Services;
-using System.Net.Security;
-using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,10 @@ builder.Services.AddScoped<AIService>();
 
 // Configure API settings using IOptions pattern - bind the entire configuration to ApiConfiguration
 builder.Services.Configure<ApiConfiguration>(builder.Configuration);
+
+// Register evaluation services
+builder.Services.AddScoped<IEvaluationRepository, InMemoryEvaluationRepository>();
+builder.Services.AddScoped<EvaluationApplicationService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
