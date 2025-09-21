@@ -3,10 +3,12 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using ModelComparisonStudio.Configuration;
 
 namespace ModelComparisonStudio.Services
 {
+    /// <summary>
+    /// Service for interacting with AI models from multiple providers
+    /// </summary>
     public class AIService
     {
         private readonly ApiConfiguration _apiConfiguration;
@@ -83,20 +85,32 @@ namespace ModelComparisonStudio.Services
                     throw new InvalidOperationException($"API key not configured for {provider}");
                 }
 
-                // Prepare the request - use dynamic max_tokens based on prompt size
+                // Prepare the request using the exact NanoGPT API format that works
                 var promptLength = prompt.Length;
                 var maxTokens = Math.Min(4000, Math.Max(1000, promptLength / 2)); // Dynamic calculation
                 if (promptLength > 2000) maxTokens = 4000; // For very large prompts, use max tokens
                 
+                // Use the exact format from the working curl command
+                // Map the model ID to the correct NanoGPT API model name
+                string nanoGptModelName = MapModelIdToNanoGptName(modelId);
+                
                 var request = new
                 {
-                    model = modelId,
+                    model = nanoGptModelName, // Use the mapped model name
                     messages = new[]
                     {
                         new { role = "user", content = prompt }
                     },
+                    stream = false,
+                    temperature = 0.7,
                     max_tokens = maxTokens,
-                    temperature = 0.7
+                    top_p = 1,
+                    frequency_penalty = 0,
+                    presence_penalty = 0,
+                    cache_control = new
+                    {
+                        enabled = false
+                    }
                 };
 
                 // Log request size for debugging
@@ -111,10 +125,24 @@ namespace ModelComparisonStudio.Services
                 _logger.LogInformation("Setting up HTTP headers for {Provider} API call", provider);
                 _httpClient.DefaultRequestHeaders.Clear();
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-                _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
-                _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
                 
-                _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], HTTP-Referer: https://modelcomparisonstudio.com, X-Title: Model Comparison Studio");
+                // Add provider-specific headers
+                if (provider == "OpenRouter")
+                {
+                    _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://modelcomparisonstudio.com");
+                    _httpClient.DefaultRequestHeaders.Add("X-Title", "Model Comparison Studio");
+                    _httpClient.DefaultRequestHeaders.Accept.Clear();
+                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                }
+                else if (provider == "NanoGPT")
+                {
+                    // NanoGPT requires text/event-stream accept header
+                    _httpClient.DefaultRequestHeaders.Accept.Clear();
+                    _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+                }
+                
+                _logger.LogInformation("HTTP Headers set - Authorization: Bearer [REDACTED], Accept: {AcceptHeader}",
+                    _httpClient.DefaultRequestHeaders.Accept.ToString());
 
                 // Make the API call with enhanced error handling for large requests
                 _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
@@ -359,9 +387,14 @@ namespace ModelComparisonStudio.Services
 
         private (string provider, string apiKey, string baseUrl) GetProviderInfo(string modelId)
         {
+            _logger.LogInformation("=== GetProviderInfo Debug Start ===");
             _logger.LogInformation("GetProviderInfo called for model: {ModelId}", modelId);
-            _logger.LogInformation("NanoGPT available models: {Models}", string.Join(", ", _apiConfiguration.NanoGPT?.AvailableModels ?? Array.Empty<string>()));
-            _logger.LogInformation("OpenRouter available models: {Models}", string.Join(", ", _apiConfiguration.OpenRouter?.AvailableModels ?? Array.Empty<string>()));
+            
+            var nanoGptModels = _apiConfiguration.NanoGPT?.AvailableModels ?? Array.Empty<string>();
+            var openRouterModels = _apiConfiguration.OpenRouter?.AvailableModels ?? Array.Empty<string>();
+            
+            _logger.LogInformation("NanoGPT available models ({Count}): {Models}", nanoGptModels.Length, string.Join(", ", nanoGptModels));
+            _logger.LogInformation("OpenRouter available models ({Count}): {Models}", openRouterModels.Length, string.Join(", ", openRouterModels));
 
             // Determine provider based on model ID patterns
             // Models with ":free" suffix are typically OpenRouter models
@@ -371,23 +404,60 @@ namespace ModelComparisonStudio.Services
                 return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
             }
 
-            // Check if model is in NanoGPT's available models
-            if (_apiConfiguration.NanoGPT?.AvailableModels?.Contains(modelId) == true)
+            // Check if model is in NanoGPT's available models (case-insensitive)
+            bool isInNanoGPT = nanoGptModels.Any(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase));
+            _logger.LogInformation("Model {ModelId} in NanoGPT models: {IsInNanoGPT}", modelId, isInNanoGPT);
+            
+            if (isInNanoGPT)
             {
                 _logger.LogInformation("Model {ModelId} assigned to NanoGPT provider", modelId);
-                return ("NanoGPT", _apiConfiguration.NanoGPT.ApiKey, _apiConfiguration.NanoGPT.BaseUrl);
+                return ("NanoGPT", _apiConfiguration.NanoGPT?.ApiKey ?? string.Empty, _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty);
             }
 
-            // Check if model is in OpenRouter's available models
-            if (_apiConfiguration.OpenRouter?.AvailableModels?.Contains(modelId) == true)
+            // Check if model is in OpenRouter's available models (case-insensitive)
+            bool isInOpenRouter = openRouterModels.Any(m => string.Equals(m, modelId, StringComparison.OrdinalIgnoreCase));
+            _logger.LogInformation("Model {ModelId} in OpenRouter models: {IsInOpenRouter}", modelId, isInOpenRouter);
+            
+            if (isInOpenRouter)
             {
                 _logger.LogInformation("Model {ModelId} assigned to OpenRouter provider", modelId);
-                return ("OpenRouter", _apiConfiguration.OpenRouter.ApiKey, _apiConfiguration.OpenRouter.BaseUrl);
+                return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
             }
 
             // If model is not found in either provider, log warning and default to OpenRouter
             _logger.LogWarning("Model {ModelId} not found in configured providers, defaulting to OpenRouter", modelId);
+            _logger.LogInformation("=== GetProviderInfo Debug End ===");
             return ("OpenRouter", _apiConfiguration.OpenRouter?.ApiKey ?? string.Empty, _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty);
+        }
+
+        /// <summary>
+        /// Maps model ID to the correct NanoGPT API model name
+        /// </summary>
+        private string MapModelIdToNanoGptName(string modelId)
+        {
+            // Simple mapping based on common patterns
+            if (modelId.Contains("deepseek", StringComparison.OrdinalIgnoreCase))
+                return "deepseek-chat";
+            else if (modelId.Contains("kimi", StringComparison.OrdinalIgnoreCase))
+                return "kimi-chat";
+            else if (modelId.Contains("qwen", StringComparison.OrdinalIgnoreCase))
+                return "qwen-chat";
+            else if (modelId.Contains("claude", StringComparison.OrdinalIgnoreCase))
+                return "claude-chat";
+            else if (modelId.Contains("gpt", StringComparison.OrdinalIgnoreCase))
+                return "chatgpt-4o-latest";
+            else if (modelId.Contains("gemini", StringComparison.OrdinalIgnoreCase))
+                return "gemini-chat";
+            else if (modelId.Contains("llama", StringComparison.OrdinalIgnoreCase))
+                return "llama-chat";
+            else if (modelId.Contains("hermes", StringComparison.OrdinalIgnoreCase))
+                return "hermes-chat";
+            else if (modelId.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+                return "nemotron-chat";
+            else if (modelId.Contains("glm", StringComparison.OrdinalIgnoreCase))
+                return "glm-chat";
+            else
+                return "chatgpt-4o-latest"; // default fallback
         }
     }
 

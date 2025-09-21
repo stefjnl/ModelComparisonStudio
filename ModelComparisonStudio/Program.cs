@@ -1,5 +1,6 @@
 using ModelComparisonStudio.Services;
-using ModelComparisonStudio.Configuration;
+using System.Net.Security;
+using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,28 +34,29 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Register AIService
+// Register AIService with HttpClient - keep it simple for now
 builder.Services.AddHttpClient<AIService>();
 builder.Services.AddScoped<AIService>();
 
 // Configure API settings - bind the entire configuration to ApiConfiguration
-builder.Services.Configure<ModelComparisonStudio.Configuration.ApiConfiguration>(
+// Configure API settings - bind the entire configuration to ApiConfiguration
+builder.Services.Configure<ApiConfiguration>(
     builder.Configuration);
 
 // Add API configuration as a singleton for direct access (this will be used by AIService)
-builder.Services.AddSingleton<ModelComparisonStudio.Configuration.ApiConfiguration>(sp =>
+builder.Services.AddSingleton<ApiConfiguration>(sp =>
 {
     var configuration = builder.Configuration;
-    var apiConfig = new ModelComparisonStudio.Configuration.ApiConfiguration();
+    var apiConfig = new ApiConfiguration();
     
     // Bind NanoGPT configuration
     var nanoGptSection = configuration.GetSection("NanoGPT");
     if (nanoGptSection.Exists())
     {
-        apiConfig.NanoGPT = new ModelComparisonStudio.Configuration.NanoGPTConfiguration
+        apiConfig.NanoGPT = new NanoGPTConfiguration
         {
             ApiKey = nanoGptSection["ApiKey"] ?? string.Empty,
-            BaseUrl = nanoGptSection["BaseUrl"] ?? "https://api.nano-gpt.com",
+            BaseUrl = nanoGptSection["BaseUrl"] ?? "https://nano-gpt.com/api/v1",
             AvailableModels = nanoGptSection.GetSection("AvailableModels").Get<string[]>() ?? Array.Empty<string>()
         };
     }
@@ -63,7 +65,7 @@ builder.Services.AddSingleton<ModelComparisonStudio.Configuration.ApiConfigurati
     var openRouterSection = configuration.GetSection("OpenRouter");
     if (openRouterSection.Exists())
     {
-        apiConfig.OpenRouter = new ModelComparisonStudio.Configuration.OpenRouterConfiguration
+        apiConfig.OpenRouter = new OpenRouterConfiguration
         {
             ApiKey = openRouterSection["ApiKey"] ?? string.Empty,
             BaseUrl = openRouterSection["BaseUrl"] ?? "https://openrouter.ai/api/v1",

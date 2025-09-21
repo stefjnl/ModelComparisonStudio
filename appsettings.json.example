@@ -8,7 +8,7 @@
   "AllowedHosts": "*",
   "NanoGPT": {
     "ApiKey": "your-nanogpt-api-key-here",
-    "BaseUrl": "https://api.nano-gpt.com",
+    "BaseUrl": "https://nano-gpt.com/api/v1",
     "AvailableModels": [
       "deepseek/deepseek-chat-v3.1",
       "qwen/qwen3-coder",

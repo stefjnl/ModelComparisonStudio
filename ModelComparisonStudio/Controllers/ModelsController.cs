@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Services;
 
 namespace ModelComparisonStudio.Controllers
 {
