@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using ModelComparisonStudio.Application.Services;
 using ModelComparisonStudio.Configuration;
 using ModelComparisonStudio.Core.Interfaces;
+using ModelComparisonStudio.Infrastructure;
 using ModelComparisonStudio.Infrastructure.Repositories;
 using ModelComparisonStudio.Services;
 
@@ -48,12 +50,23 @@ builder.Services.AddScoped<AIService>();
 // Configure API settings using IOptions pattern - bind the entire configuration to ApiConfiguration
 builder.Services.Configure<ApiConfiguration>(builder.Configuration);
 
+// Register database context
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite("Data Source=evaluations.db"));
+
 // Register evaluation services
-builder.Services.AddScoped<IEvaluationRepository, InMemoryEvaluationRepository>();
+builder.Services.AddScoped<IEvaluationRepository, SqliteEvaluationRepository>();
 builder.Services.AddScoped<EvaluationApplicationService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Initialize database
+using (var scope = builder.Services.BuildServiceProvider().CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    dbContext.Database.EnsureCreated(); // Creates the database if it doesn't exist
+}
 
 var app = builder.Build();
 
