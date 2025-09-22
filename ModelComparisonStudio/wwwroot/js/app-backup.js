@@ -1,267 +1,6 @@
 // Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
-const ModelComparisonApp = (() => {
-    // === UTILITIES SECTION ===
-    const utils = {
-        escapeHtml: function(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        },
-
-        formatResponseContent: function(response) {
-            if (!response) return '';
-
-            // Replace line breaks with <br> tags for proper display
-            let formatted = response
-                .replace(/\n\n/g, '</p><p>')  // Double line breaks become paragraphs
-                .replace(/\n/g, '<br>');      // Single line breaks become <br>
-
-            // Handle markdown-style bold text (**text**)
-            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-            // Handle markdown-style italic text (*text*)
-            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-            // Wrap in paragraph tags if it contains multiple lines
-            if (formatted.includes('<br>') || formatted.includes('</p>')) {
-                formatted = '<p>' + formatted + '</p>';
-            }
-
-            return formatted;
-        },
-
-        generatePromptId: function(prompt) {
-            // Simple hash function for prompt ID generation
-            let hash = 0;
-            for (let i = 0; i < prompt.length; i++) {
-                const char = prompt.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32-bit integer
-            }
-            return `prompt_${Math.abs(hash)}`;
-        },
-
-        isValidModelFormat: function(modelId) {
-            return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(modelId);
-        }
-    };
-
-    // === API SECTION ===
-    const api = {
-        getApiBaseUrl: function() {
-            // Use the same protocol and port as the current page to avoid CORS issues
-            return window.location.origin;
-        },
-
-        async loadAvailableModels() {
-            console.log('DEBUG: loadAvailableModels started');
-            try {
-                // Use HTTP port 5211 for API calls (where the API is actually running)
-                const baseUrl = window.location.protocol === 'https:'
-                    ? 'http://localhost:5211'
-                    : window.location.origin;
-                console.log(`DEBUG: Using base URL: ${baseUrl}`);
-
-                const response = await fetch(`${baseUrl}/api/models/available`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('DEBUG: API response data:', data);
-
-                return {
-                    nanoGPT: data.nanoGPT.models || [],
-                    openRouter: data.openRouter.models || []
-                };
-
-            } catch (error) {
-                console.error('Error loading available models from API:', error);
-                throw error;
-            }
-        },
-
-        async executeComparison(requestData) {
-            console.log('Starting comparison with models:', requestData.selectedModels);
-
-            // Use the correct API base URL
-            const baseUrl = this.getApiBaseUrl();
-            console.log(`DEBUG: Using base URL for comparison: ${baseUrl}`);
-
-            const response = await fetch(`${baseUrl}/api/comparison/execute`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const comparisonResult = await response.json();
-            console.log('Comparison completed:', comparisonResult);
-
-            return comparisonResult;
-        },
-
-        async saveEvaluation(evaluation) {
-            const baseUrl = this.getApiBaseUrl();
-            const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    promptId: evaluation.promptId,
-                    promptText: evaluation.promptText,
-                    modelId: evaluation.modelId,
-                    rating: evaluation.rating,
-                    comment: evaluation.comment,
-                    responseTimeMs: evaluation.responseTimeMs,
-                    tokenCount: evaluation.tokenCount,
-                    timestamp: evaluation.timestamp,
-                    saved: evaluation.saved
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                let errorMessage = `HTTP error! status: ${response.status}`;
-
-                if (errorData.detail) {
-                    errorMessage = errorData.detail;
-                } else if (errorData.errors) {
-                    errorMessage = Object.values(errorData.errors).flat().join(', ');
-                } else if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-
-                throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-            return result;
-        },
-
-        async loadRankingData(timeFilter = 'all', sortBy = 'rating') {
-            try {
-                const baseUrl = this.getApiBaseUrl();
-                const endpoint = timeFilter === 'all'
-                    ? `${baseUrl}/api/evaluations/statistics/all`
-                    : `${baseUrl}/api/evaluations/statistics?timeframe=${timeFilter}`;
-
-                const response = await fetch(endpoint);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const rankingData = await response.json();
-                console.log('Ranking data loaded:', rankingData);
-                return rankingData;
-
-            } catch (error) {
-                console.error('Error loading ranking data:', error);
-                throw error;
-            }
-        },
-
-        async deleteModel(modelId) {
-            const baseUrl = this.getApiBaseUrl();
-            const response = await fetch(`${baseUrl}/api/evaluations/model/${modelId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                let errorMessage = `HTTP error! status: ${response.status}`;
-
-                if (errorData.detail) {
-                    errorMessage = errorData.detail;
-                } else if (errorData.error) {
-                    errorMessage = errorData.error;
-                }
-
-                throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-            console.log('Model deletion result:', result);
-            return result;
-        }
-    };
-
-    // === STORAGE SECTION ===
-    const storage = {
-        saveModelsToStorage: function(models) {
-            localStorage.setItem('modelComparisonStudio_models', JSON.stringify(models));
-        },
-
-        loadModelsFromStorage: function() {
-            const stored = localStorage.getItem('modelComparisonStudio_models');
-            return stored ? JSON.parse(stored) : [];
-        }
-    };
-
-    // === UI SECTION ===
-    const ui = {
-        displayErrorMessage: function(message, type = 'error') {
-            const container = document.getElementById('selectedModels');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = `error-message ${type}`;
-            errorDiv.textContent = message;
-            errorDiv.style.cssText = `
-                background-color: ${type === 'validation-error' ? '#dc2626' : '#ef4444'};
-                color: white;
-                padding: 12px 16px;
-                border-radius: 8px;
-                margin-bottom: 16px;
-                font-size: 14px;
-                font-weight: 500;
-                border-left: 4px solid ${type === 'validation-error' ? '#fca5a5' : '#f87171'};
-                animation: slideIn 0.3s ease-out;
-            `;
-            container.appendChild(errorDiv);
-
-            setTimeout(() => {
-                errorDiv.style.animation = 'slideOut 0.3s ease-in';
-                setTimeout(() => errorDiv.remove(), 300);
-            }, 5000);
-        },
-
-        displaySuccessMessage: function(message) {
-            const container = document.getElementById('selectedModels');
-            const successDiv = document.createElement('div');
-            successDiv.className = 'success-message';
-            successDiv.textContent = message;
-            successDiv.style.cssText = `
-                background-color: #16a34a;
-                color: white;
-                padding: 12px 16px;
-                border-radius: 8px;
-                margin-bottom: 16px;
-                font-size: 14px;
-                font-weight: 500;
-                border-left: 4px solid #4ade80;
-                animation: slideIn 0.3s ease-out;
-            `;
-            container.appendChild(successDiv);
-
-            setTimeout(() => {
-                successDiv.style.animation = 'slideOut 0.3s ease-in';
-                setTimeout(() => successDiv.remove(), 300);
-            }, 3000);
-        }
-    };
-
-    // === MAIN APP CLASS ===
-    class ModelComparisonApp {
+class ModelComparisonApp {
     constructor() {
         this.selectedModels = [];
         this.availableModels = {
@@ -275,11 +14,11 @@ const ModelComparisonApp = (() => {
 
         this.initializeEventListeners();
 
-        // Use the organized API functions
-        this.api = api;
-        this.utils = utils;
-        this.storage = storage;
-        this.ui = ui;
+        // Helper method to get the correct API base URL
+        this.getApiBaseUrl = () => {
+            // Use the same protocol and port as the current page to avoid CORS issues
+            return window.location.origin;
+        };
 
         // Ensure DOM is ready before loading models
         if (document.readyState === 'loading') {
@@ -440,13 +179,31 @@ const ModelComparisonApp = (() => {
     async loadAvailableModels() {
         console.log('DEBUG: loadAvailableModels started');
         try {
-            this.availableModels = await this.api.loadAvailableModels();
+            // Use HTTP port 5211 for API calls (where the API is actually running)
+            const baseUrl = window.location.protocol === 'https:'
+                ? 'http://localhost:5211'
+                : window.location.origin;
+            console.log(`DEBUG: Using base URL: ${baseUrl}`);
+
+            const response = await fetch(`${baseUrl}/api/models/available`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('DEBUG: API response data:', data);
+
+            this.availableModels = {
+                nanoGPT: data.nanoGPT.models || [],
+                openRouter: data.openRouter.models || []
+            };
+
             console.log('DEBUG: Loaded models from API:', this.availableModels);
             this.displayAvailableModels();
 
         } catch (error) {
             console.error('Error loading available models from API:', error);
-            this.ui.displayErrorMessage('Failed to load available models from API. Loading from configuration.');
+            this.displayErrorMessage('Failed to load available models from API. Loading from configuration.');
             this.loadModelsFromConfiguration();
         }
     }
@@ -703,12 +460,52 @@ const ModelComparisonApp = (() => {
 
     // Display error message with optional type for styling
     displayErrorMessage(message, type = 'error') {
-        this.ui.displayErrorMessage(message, type);
+        const container = document.getElementById('selectedModels');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = `error-message ${type}`;
+        errorDiv.textContent = message;
+        errorDiv.style.cssText = `
+            background-color: ${type === 'validation-error' ? '#dc2626' : '#ef4444'};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 4px solid ${type === 'validation-error' ? '#fca5a5' : '#f87171'};
+            animation: slideIn 0.3s ease-out;
+        `;
+        container.appendChild(errorDiv);
+
+        setTimeout(() => {
+            errorDiv.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => errorDiv.remove(), 300);
+        }, 5000);
     }
 
     // Display success message
     displaySuccessMessage(message) {
-        this.ui.displaySuccessMessage(message);
+        const container = document.getElementById('selectedModels');
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message';
+        successDiv.textContent = message;
+        successDiv.style.cssText = `
+            background-color: #16a34a;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 4px solid #4ade80;
+            animation: slideIn 0.3s ease-out;
+        `;
+        container.appendChild(successDiv);
+
+        setTimeout(() => {
+            successDiv.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => successDiv.remove(), 300);
+        }, 3000);
     }
 
     // Model management methods
@@ -755,7 +552,7 @@ const ModelComparisonApp = (() => {
 
     // Check if model exists in available models
     isValidModelFormat(modelId) {
-        return this.utils.isValidModelFormat(modelId);
+        return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(modelId);
     }
 
     removeModel(modelId) {
@@ -915,11 +712,12 @@ const ModelComparisonApp = (() => {
 
     // Storage methods
     saveModelsToStorage() {
-        this.storage.saveModelsToStorage(this.selectedModels);
+        localStorage.setItem('modelComparisonStudio_models', JSON.stringify(this.selectedModels));
     }
 
     loadModelsFromStorage() {
-        return this.storage.loadModelsFromStorage();
+        const stored = localStorage.getItem('modelComparisonStudio_models');
+        return stored ? JSON.parse(stored) : [];
     }
 
     // Comparison methods
@@ -933,7 +731,27 @@ const ModelComparisonApp = (() => {
                 selectedModels: this.selectedModels
             };
 
-            const comparisonResult = await this.api.executeComparison(requestData);
+            console.log('Starting comparison with models:', this.selectedModels);
+
+            // Use the correct API base URL
+            const baseUrl = this.getApiBaseUrl();
+            console.log(`DEBUG: Using base URL for comparison: ${baseUrl}`);
+
+            const response = await fetch(`${baseUrl}/api/comparison/execute`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            const comparisonResult = await response.json();
+            console.log('Comparison completed:', comparisonResult);
 
             // Display results
             this.displayComparisonResults(comparisonResult);
@@ -943,9 +761,9 @@ const ModelComparisonApp = (() => {
 
             // Handle validation errors specifically
             if (error.message.includes('HTTP error! status: 400')) {
-                this.ui.displayErrorMessage('Your request couldn\'t be processed. Please check your prompt length (keep it under 50,000 characters) and model selection.', 'validation-error');
+                this.displayErrorMessage('Your request couldn\'t be processed. Please check your prompt length (keep it under 50,000 characters) and model selection.', 'validation-error');
             } else {
-                this.ui.displayErrorMessage(`Comparison failed: ${error.message}`);
+                this.displayErrorMessage(`Comparison failed: ${error.message}`);
             }
 
             this.setComparisonInProgress(false);
@@ -1011,7 +829,14 @@ const ModelComparisonApp = (() => {
 
     // Generate a unique ID for the prompt
     generatePromptId(prompt) {
-        return this.utils.generatePromptId(prompt);
+        // Simple hash function for prompt ID generation
+        let hash = 0;
+        for (let i = 0; i < prompt.length; i++) {
+            const char = prompt.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return `prompt_${Math.abs(hash)}`;
     }
 
     // Create a single model panel for the vertical layout
@@ -1057,7 +882,9 @@ const ModelComparisonApp = (() => {
 
     // Helper to escape HTML for data attributes
     escapeHtml(text) {
-        return this.utils.escapeHtml(text);
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Populate a single model panel with data
@@ -1197,7 +1024,25 @@ const ModelComparisonApp = (() => {
 
     // Format response content for better display
     formatResponseContent(response) {
-        return this.utils.formatResponseContent(response);
+        if (!response) return '';
+
+        // Replace line breaks with <br> tags for proper display
+        let formatted = response
+            .replace(/\n\n/g, '</p><p>')  // Double line breaks become paragraphs
+            .replace(/\n/g, '<br>');      // Single line breaks become <br>
+
+        // Handle markdown-style bold text (**text**)
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Handle markdown-style italic text (*text*)
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+        // Wrap in paragraph tags if it contains multiple lines
+        if (formatted.includes('<br>') || formatted.includes('</p>')) {
+            formatted = '<p>' + formatted + '</p>';
+        }
+
+        return formatted;
     }
 
     // Comparison methods
@@ -1298,7 +1143,41 @@ const ModelComparisonApp = (() => {
                 this.showSavingState(container);
             }
 
-            const result = await this.api.saveEvaluation(evaluation);
+            const baseUrl = this.getApiBaseUrl();
+            const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    promptId: evaluation.promptId,
+                    promptText: evaluation.promptText,
+                    modelId: evaluation.modelId,
+                    rating: evaluation.rating,
+                    comment: evaluation.comment,
+                    responseTimeMs: evaluation.responseTimeMs,
+                    tokenCount: evaluation.tokenCount,
+                    timestamp: evaluation.timestamp,
+                    saved: evaluation.saved
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.errors) {
+                    errorMessage = Object.values(errorData.errors).flat().join(', ');
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
 
             // Update evaluation with server data
             evaluation.id = result.id;
@@ -1456,7 +1335,41 @@ const ModelComparisonApp = (() => {
         try {
             this.showCommentSavingState(textarea);
 
-            const result = await this.api.saveEvaluation(evaluation);
+            const baseUrl = this.getApiBaseUrl();
+            const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    promptId: evaluation.promptId,
+                    promptText: evaluation.promptText,
+                    modelId: evaluation.modelId,
+                    rating: evaluation.rating,
+                    comment: evaluation.comment,
+                    responseTimeMs: evaluation.responseTimeMs,
+                    tokenCount: evaluation.tokenCount,
+                    timestamp: evaluation.timestamp,
+                    saved: evaluation.saved
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.errors) {
+                    errorMessage = Object.values(errorData.errors).flat().join(', ');
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
             evaluation.id = result.id;
             evaluation.timestamp = result.timestamp;
             evaluation.saved = true;
@@ -1538,7 +1451,17 @@ const ModelComparisonApp = (() => {
     // Load ranking data from the backend
     async loadRankingData(timeFilter = 'all', sortBy = 'rating') {
         try {
-            const rankingData = await this.api.loadRankingData(timeFilter);
+            const baseUrl = this.getApiBaseUrl();
+            const endpoint = timeFilter === 'all'
+                ? `${baseUrl}/api/evaluations/statistics/all`
+                : `${baseUrl}/api/evaluations/statistics?timeframe=${timeFilter}`;
+            
+            const response = await fetch(endpoint);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const rankingData = await response.json();
             console.log('Ranking data loaded:', rankingData);
             this.displayRankingData(rankingData, sortBy);
 
@@ -1759,7 +1682,28 @@ const ModelComparisonApp = (() => {
         }
 
         try {
-            const result = await this.api.deleteModel(modelId);
+            const baseUrl = this.getApiBaseUrl();
+            const response = await fetch(`${baseUrl}/api/evaluations/model/${modelId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
             console.log('Model deletion result:', result);
 
             // Show success message
@@ -1859,26 +1803,8 @@ const ModelComparisonApp = (() => {
     }
 }
 
-// === PUBLIC INTERFACE ===
-// Create app instance and return public methods for HTML onclick handlers
-const appInstance = new ModelComparisonApp();
+// Initialize the application
+const app = new ModelComparisonApp();
 
-return {
-    // Essential methods for HTML onclick handlers
-    toggleProvider: (provider) => appInstance.toggleProvider(provider),
-    removeModel: (modelId) => appInstance.removeModel(modelId),
-    selectModelForComparison: (modelId) => appInstance.selectModelForComparison(modelId),
-    viewModelDetails: (modelId) => appInstance.viewModelDetails(modelId),
-    deleteModel: (modelId) => appInstance.deleteModel(modelId),
-
-    // Additional public methods that might be used by HTML
-    showRankingDashboard: () => appInstance.showRankingDashboard(),
-    showMainView: () => appInstance.showMainView(),
-
-    // Expose the full app instance for advanced usage if needed
-    getInstance: () => appInstance
-};
-})();
-
-// Essential: Make it globally available for HTML onclick handlers
-window.app = ModelComparisonApp;
+// Export for global access
+window.ModelComparisonApp = ModelComparisonApp;
