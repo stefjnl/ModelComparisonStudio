@@ -1,4 +1,5 @@
 import { escapeHtml, formatResponseContent, generatePromptId, isValidModelFormat } from './modules/utils.js';
+import { saveModelsToStorage, loadModelsFromStorage } from './modules/storage.js';
 
 // Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
@@ -150,18 +151,6 @@ const ModelComparisonApp = (() => {
         }
     };
 
-    // === STORAGE SECTION ===
-    const storage = {
-        saveModelsToStorage: function(models) {
-            localStorage.setItem('modelComparisonStudio_models', JSON.stringify(models));
-        },
-
-        loadModelsFromStorage: function() {
-            const stored = localStorage.getItem('modelComparisonStudio_models');
-            return stored ? JSON.parse(stored) : [];
-        }
-    };
-
     // === UI SECTION ===
     const ui = {
         displayErrorMessage: function(message, type = 'error') {
@@ -230,7 +219,6 @@ const ModelComparisonApp = (() => {
 
         // Use the organized API functions
         this.api = api;
-        this.storage = storage;
         this.ui = ui;
 
         // Ensure DOM is ready before loading models
@@ -867,11 +855,11 @@ const ModelComparisonApp = (() => {
 
     // Storage methods
     saveModelsToStorage() {
-        this.storage.saveModelsToStorage(this.selectedModels);
+        saveModelsToStorage(this.selectedModels);
     }
 
     loadModelsFromStorage() {
-        return this.storage.loadModelsFromStorage();
+        return loadModelsFromStorage();
     }
 
     // Comparison methods
