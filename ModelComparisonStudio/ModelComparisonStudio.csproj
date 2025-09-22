@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ModelComparisonStudio.ServiceDefaults\ModelComparisonStudio.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\ModelComparisonStudio.Core\ModelComparisonStudio.Core.csproj" />
+    <ProjectReference Include="..\ModelComparisonStudio.Application\ModelComparisonStudio.Application.csproj" />
+    <ProjectReference Include="..\ModelComparisonStudio.Infrastructure\ModelComparisonStudio.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -43,14 +43,26 @@
                 </div>
 
                 <!-- Desktop Sidebar Toggle Button -->
-                <button id="desktopSidebarToggle"
-                    class="hidden lg:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-xl border border-slate-700/30 rounded-xl px-4 py-2 transition-all duration-300">
-                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16"></path>
-                    </svg>
-                    <span class="text-sm text-slate-300 font-medium">Toggle Sidebar</span>
-                </button>
+                <div class="flex items-center gap-4">
+                    <button id="showRankingsBtn"
+                        class="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Rankings
+                        </span>
+                    </button>
+                    <button id="desktopSidebarToggle"
+                        class="hidden lg:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-xl border border-slate-700/30 rounded-xl px-4 py-2 transition-all duration-300">
+                        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                        <span class="text-sm text-slate-300 font-medium">Toggle Sidebar</span>
+                    </button>
+                </div>
             </div>
         </div>
     </header>
@@ -211,6 +223,38 @@
                     <!-- Vertical Stack Layout for Model Comparisons -->
                     <div id="comparisonResults" class="space-y-8">
                         <!-- Model panels will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- Ranking Dashboard -->
+                <div id="rankingDashboard" class="hidden">
+                    <div
+                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                        <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
+                            Model Rankings
+                        </h2>
+
+                        <!-- Ranking filters and controls -->
+                        <div class="flex flex-wrap gap-4 mb-6">
+                            <select id="rankingTimeFilter"
+                                class="bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white">
+                                <option value="all">All Time</option>
+                                <option value="week">Last Week</option>
+                                <option value="month">Last Month</option>
+                            </select>
+                            <select id="rankingSortBy"
+                                class="bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white">
+                                <option value="rating">Average Rating</option>
+                                <option value="responses">Total Responses</option>
+                                <option value="speed">Average Speed</option>
+                            </select>
+                        </div>
+
+                        <!-- Ranking leaderboard -->
+                        <div id="rankingLeaderboard" class="space-y-4">
+                            <div class="text-slate-400 text-center py-8">Loading ranking data...</div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using ModelComparisonStudio.Services;
+using Microsoft.Extensions.Options;
+using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Core.ValueObjects;
+using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
 
 namespace ModelComparisonStudio.Controllers
 {
@@ -10,9 +13,9 @@ namespace ModelComparisonStudio.Controllers
         private readonly ApiConfiguration _apiConfiguration;
         private readonly ILogger<ModelsController> _logger;
 
-        public ModelsController(ApiConfiguration apiConfiguration, ILogger<ModelsController> logger)
+        public ModelsController(IOptions<ApiConfiguration> apiConfiguration, ILogger<ModelsController> logger)
         {
-            _apiConfiguration = apiConfiguration;
+            _apiConfiguration = apiConfiguration.Value;
             _logger = logger;
         }
 
@@ -32,14 +35,14 @@ namespace ModelComparisonStudio.Controllers
                 {
                     NanoGPT = new ProviderModels
                     {
-                        Provider = "NanoGPT",
+                        Provider = NanoGPT,
                         BaseUrl = _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty,
                         Models = nanoGPTModels,
                         ModelCount = nanoGPTModels.Length
                     },
                     OpenRouter = new ProviderModels
                     {
-                        Provider = "OpenRouter",
+                        Provider = OpenRouter,
                         BaseUrl = _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty,
                         Models = openRouterModels,
                         ModelCount = openRouterModels.Length
@@ -75,14 +78,14 @@ namespace ModelComparisonStudio.Controllers
                 {
                     "nanogpt" => new ProviderModels
                     {
-                        Provider = "NanoGPT",
+                        Provider = NanoGPT,
                         BaseUrl = _apiConfiguration.NanoGPT?.BaseUrl ?? string.Empty,
                         Models = _apiConfiguration.NanoGPT?.AvailableModels ?? Array.Empty<string>(),
                         ModelCount = _apiConfiguration.NanoGPT?.AvailableModels?.Length ?? 0
                     },
                     "openrouter" => new ProviderModels
                     {
-                        Provider = "OpenRouter",
+                        Provider = OpenRouter,
                         BaseUrl = _apiConfiguration.OpenRouter?.BaseUrl ?? string.Empty,
                         Models = _apiConfiguration.OpenRouter?.AvailableModels ?? Array.Empty<string>(),
                         ModelCount = _apiConfiguration.OpenRouter?.AvailableModels?.Length ?? 0
@@ -92,7 +95,7 @@ namespace ModelComparisonStudio.Controllers
 
                 if (result == null)
                 {
-                    return NotFound(new { error = $"Provider '{provider}' not found. Use 'nanogpt' or 'openrouter'" });
+                    return NotFound(new { error = $"Provider '{provider}' not found. Use '{AIProviderNames.NanoGPT.ToLowerInvariant()}' or '{AIProviderNames.OpenRouter.ToLowerInvariant()}'" });
                 }
 
                 _logger.LogInformation("Retrieved models for provider {Provider}: {ModelCount} models", 
