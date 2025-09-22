@@ -1,52 +1,8 @@
+import { escapeHtml, formatResponseContent, generatePromptId, isValidModelFormat } from './modules/utils.js';
+
 // Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
 const ModelComparisonApp = (() => {
-    // === UTILITIES SECTION ===
-    const utils = {
-        escapeHtml: function(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        },
-
-        formatResponseContent: function(response) {
-            if (!response) return '';
-
-            // Replace line breaks with <br> tags for proper display
-            let formatted = response
-                .replace(/\n\n/g, '</p><p>')  // Double line breaks become paragraphs
-                .replace(/\n/g, '<br>');      // Single line breaks become <br>
-
-            // Handle markdown-style bold text (**text**)
-            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-            // Handle markdown-style italic text (*text*)
-            formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-            // Wrap in paragraph tags if it contains multiple lines
-            if (formatted.includes('<br>') || formatted.includes('</p>')) {
-                formatted = '<p>' + formatted + '</p>';
-            }
-
-            return formatted;
-        },
-
-        generatePromptId: function(prompt) {
-            // Simple hash function for prompt ID generation
-            let hash = 0;
-            for (let i = 0; i < prompt.length; i++) {
-                const char = prompt.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32-bit integer
-            }
-            return `prompt_${Math.abs(hash)}`;
-        },
-
-        isValidModelFormat: function(modelId) {
-            return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(modelId);
-        }
-    };
-
     // === API SECTION ===
     const api = {
         getApiBaseUrl: function() {
@@ -57,10 +13,7 @@ const ModelComparisonApp = (() => {
         async loadAvailableModels() {
             console.log('DEBUG: loadAvailableModels started');
             try {
-                // Use HTTP port 5211 for API calls (where the API is actually running)
-                const baseUrl = window.location.protocol === 'https:'
-                    ? 'http://localhost:5211'
-                    : window.location.origin;
+                const baseUrl = this.getApiBaseUrl();
                 console.log(`DEBUG: Using base URL: ${baseUrl}`);
 
                 const response = await fetch(`${baseUrl}/api/models/available`);
@@ -277,7 +230,6 @@ const ModelComparisonApp = (() => {
 
         // Use the organized API functions
         this.api = api;
-        this.utils = utils;
         this.storage = storage;
         this.ui = ui;
 
@@ -755,7 +707,7 @@ const ModelComparisonApp = (() => {
 
     // Check if model exists in available models
     isValidModelFormat(modelId) {
-        return this.utils.isValidModelFormat(modelId);
+        return isValidModelFormat(modelId);
     }
 
     removeModel(modelId) {
@@ -1011,7 +963,7 @@ const ModelComparisonApp = (() => {
 
     // Generate a unique ID for the prompt
     generatePromptId(prompt) {
-        return this.utils.generatePromptId(prompt);
+        return generatePromptId(prompt);
     }
 
     // Create a single model panel for the vertical layout
@@ -1057,7 +1009,7 @@ const ModelComparisonApp = (() => {
 
     // Helper to escape HTML for data attributes
     escapeHtml(text) {
-        return this.utils.escapeHtml(text);
+        return escapeHtml(text);
     }
 
     // Populate a single model panel with data
@@ -1197,7 +1149,7 @@ const ModelComparisonApp = (() => {
 
     // Format response content for better display
     formatResponseContent(response) {
-        return this.utils.formatResponseContent(response);
+        return formatResponseContent(response);
     }
 
     // Comparison methods

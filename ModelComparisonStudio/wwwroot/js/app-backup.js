@@ -179,10 +179,7 @@ class ModelComparisonApp {
     async loadAvailableModels() {
         console.log('DEBUG: loadAvailableModels started');
         try {
-            // Use HTTP port 5211 for API calls (where the API is actually running)
-            const baseUrl = window.location.protocol === 'https:'
-                ? 'http://localhost:5211'
-                : window.location.origin;
+            const baseUrl = this.getApiBaseUrl();
             console.log(`DEBUG: Using base URL: ${baseUrl}`);
 
             const response = await fetch(`${baseUrl}/api/models/available`);
