@@ -31,7 +31,8 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         if (evaluation == null)
             throw new ArgumentNullException(nameof(evaluation));
 
-        _logger.LogInformation("Saving evaluation {EvaluationId} for model {ModelId}", evaluation.Id, evaluation.ModelId);
+        _logger.LogInformation("Saving evaluation {EvaluationId} for model {ModelId}. ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+            evaluation.Id, evaluation.ModelId, evaluation.ResponseTimeMs, evaluation.TokenCount);
 
         try
         {
@@ -48,18 +49,22 @@ public class SqliteEvaluationRepository : IEvaluationRepository
             if (existing != null)
             {
                 // Update existing evaluation
+                _logger.LogDebug("Updating existing evaluation {EvaluationId}. Old ResponseTimeMs: {OldResponseTimeMs}, New ResponseTimeMs: {NewResponseTimeMs}",
+                    existing.Id, existing.ResponseTimeMs, evaluation.ResponseTimeMs);
                 _context.Entry(existing).CurrentValues.SetValues(evaluation);
                 existing.MarkAsSaved();
+                _logger.LogDebug("After update - ResponseTimeMs: {ResponseTimeMs}", existing.ResponseTimeMs);
             }
             else
             {
                 // Add new evaluation
+                _logger.LogDebug("Adding new evaluation {EvaluationId} with ResponseTimeMs: {ResponseTimeMs}", evaluation.Id, evaluation.ResponseTimeMs);
                 evaluation.MarkAsSaved();
                 await _context.Evaluations.AddAsync(evaluation, cancellationToken);
             }
 
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Evaluation {EvaluationId} saved successfully", evaluation.Id);
+            _logger.LogInformation("Evaluation {EvaluationId} saved successfully with ResponseTimeMs: {ResponseTimeMs}", evaluation.Id, evaluation.ResponseTimeMs);
 
             return evaluation;
         }
@@ -76,7 +81,8 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         if (evaluation == null)
             throw new ArgumentNullException(nameof(evaluation));
 
-        _logger.LogInformation("Updating evaluation {EvaluationId}", evaluation.Id);
+        _logger.LogInformation("Updating evaluation {EvaluationId}. ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+            evaluation.Id, evaluation.ResponseTimeMs, evaluation.TokenCount);
 
         try
         {
@@ -93,11 +99,14 @@ public class SqliteEvaluationRepository : IEvaluationRepository
                 throw new KeyNotFoundException($"Evaluation with ID {evaluation.Id} not found");
 
             // Update the existing evaluation
+            _logger.LogDebug("Updating existing evaluation {EvaluationId}. Old ResponseTimeMs: {OldResponseTimeMs}, New ResponseTimeMs: {NewResponseTimeMs}",
+                existing.Id, existing.ResponseTimeMs, evaluation.ResponseTimeMs);
             _context.Entry(existing).CurrentValues.SetValues(evaluation);
             existing.MarkAsSaved();
+            _logger.LogDebug("After update - ResponseTimeMs: {ResponseTimeMs}", existing.ResponseTimeMs);
 
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Evaluation {EvaluationId} updated successfully", evaluation.Id);
+            _logger.LogInformation("Evaluation {EvaluationId} updated successfully with ResponseTimeMs: {ResponseTimeMs}", evaluation.Id, existing.ResponseTimeMs);
 
             return existing;
         }

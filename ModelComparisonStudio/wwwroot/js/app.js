@@ -1129,7 +1129,7 @@ class ModelComparisonApp {
                 modelId: modelId,
                 rating: null,
                 comment: '',
-                responseTime: this.currentComparison?.results?.find(r => r.modelId === modelId)?.responseTimeMs || undefined,
+                responseTimeMs: this.currentComparison?.results?.find(r => r.modelId === modelId)?.responseTimeMs || 1000,
                 tokenCount: this.currentComparison?.results?.find(r => r.modelId === modelId)?.tokenCount || 0,
                 timestamp: new Date().toISOString(),
                 saved: false
@@ -1157,7 +1157,7 @@ class ModelComparisonApp {
                     modelId: evaluation.modelId,
                     rating: evaluation.rating,
                     comment: evaluation.comment,
-                    responseTime: evaluation.responseTime,
+                    responseTimeMs: evaluation.responseTimeMs,
                     tokenCount: evaluation.tokenCount,
                     timestamp: evaluation.timestamp,
                     saved: evaluation.saved
@@ -1349,7 +1349,7 @@ class ModelComparisonApp {
                     modelId: evaluation.modelId,
                     rating: evaluation.rating,
                     comment: evaluation.comment,
-                    responseTime: evaluation.responseTime,
+                    responseTimeMs: evaluation.responseTimeMs,
                     tokenCount: evaluation.tokenCount,
                     timestamp: evaluation.timestamp,
                     saved: evaluation.saved

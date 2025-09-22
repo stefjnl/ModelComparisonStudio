@@ -355,6 +355,7 @@ body {
 /* Provider Collapsible Sections */
 .provider-section {
   transition: all var(--transition-normal);
+  overflow: visible; /* Allow content to scroll */
 }
 
 .provider-header {
@@ -368,10 +369,12 @@ body {
 
 .provider-content {
   transition: max-height var(--transition-normal) ease-in-out;
+  overflow: visible; /* Allow content to be visible */
 }
 
 .provider-content.max-h-0 {
   max-height: 0;
+  overflow: hidden;
 }
 
 .provider-content.max-h-96 {

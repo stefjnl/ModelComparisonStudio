@@ -32,8 +32,8 @@ public class EvaluationApplicationService
         CreateEvaluationDto dto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Creating evaluation for model {ModelId} with prompt {PromptId}",
-            dto.ModelId, dto.PromptId);
+        _logger.LogInformation("Creating evaluation for model {ModelId} with prompt {PromptId}. ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+            dto.ModelId, dto.PromptId, dto.ResponseTimeMs, dto.TokenCount);
 
         try
         {
@@ -43,6 +43,9 @@ public class EvaluationApplicationService
                 dto.ModelId,
                 dto.ResponseTimeMs, // Already has default value of 1000
                 dto.TokenCount);
+
+            _logger.LogDebug("Created evaluation with ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+                evaluation.ResponseTimeMs, evaluation.TokenCount);
 
             // Set rating if provided
             if (dto.Rating.HasValue)
@@ -282,8 +285,8 @@ public class EvaluationApplicationService
         CreateEvaluationDto dto,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Upserting evaluation for model {ModelId} with prompt {PromptId}",
-            dto.ModelId, dto.PromptId);
+        _logger.LogInformation("Upserting evaluation for model {ModelId} with prompt {PromptId}. ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount}",
+            dto.ModelId, dto.PromptId, dto.ResponseTimeMs, dto.TokenCount);
 
         try
         {
@@ -294,8 +297,8 @@ public class EvaluationApplicationService
             if (existingEvaluation != null)
             {
                 // Update existing evaluation
-                _logger.LogInformation("Updating existing evaluation {EvaluationId}. Current ResponseTimeMs: {CurrentResponseTimeMs}",
-                    existingEvaluation.Id, existingEvaluation.ResponseTimeMs);
+                _logger.LogInformation("Updating existing evaluation {EvaluationId}. Current ResponseTimeMs: {CurrentResponseTimeMs}, New ResponseTimeMs: {NewResponseTimeMs}",
+                    existingEvaluation.Id, existingEvaluation.ResponseTimeMs, dto.ResponseTimeMs);
 
                 // Update response time and token count (these are not updated by the UpdateRating/UpdateComment methods)
                 _logger.LogDebug("Updating ResponseTimeMs: {ResponseTimeMs}, TokenCount: {TokenCount} for evaluation {EvaluationId}",
