@@ -59,7 +59,7 @@ builder.Services.Configure<ApiConfiguration>(builder.Configuration);
 
 // Register database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite("Data Source=evaluations.db"));
+    options.UseSqlite($"Data Source={Path.Combine(builder.Environment.ContentRootPath, "evaluations.db")}"));
 
 // Register evaluation services
 builder.Services.AddScoped<IEvaluationRepository, SqliteEvaluationRepository>();
@@ -79,8 +79,10 @@ using (var scope = builder.Services.BuildServiceProvider().CreateScope())
 {
     var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var currentDir = Directory.GetCurrentDirectory();
+    var contentRootPath = builder.Environment.ContentRootPath;
     dbLogger.LogInformation("Current working directory: {CurrentDir}", currentDir);
-    dbLogger.LogInformation("Database path will be: {DbPath}", Path.Combine(currentDir, "evaluations.db"));
+    dbLogger.LogInformation("Content root path: {ContentRootPath}", contentRootPath);
+    dbLogger.LogInformation("Database path will be: {DbPath}", Path.Combine(contentRootPath, "evaluations.db"));
 
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try

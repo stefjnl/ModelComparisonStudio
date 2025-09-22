@@ -578,4 +578,32 @@ public class EvaluationApplicationService
             throw;
         }
     }
+
+    /// <summary>
+    /// Deletes all evaluations for a specific model.
+    /// </summary>
+    /// <param name="modelId">The model ID to delete evaluations for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of evaluations deleted.</returns>
+    public async Task<int> DeleteEvaluationsByModelIdAsync(
+        string modelId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Deleting all evaluations for model {ModelId}", modelId);
+
+        try
+        {
+            var deletedCount = await _evaluationRepository.DeleteByModelIdAsync(modelId, cancellationToken);
+
+            _logger.LogInformation("Successfully deleted {Count} evaluations for model {ModelId}",
+                deletedCount, modelId);
+
+            return deletedCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete evaluations for model {ModelId}", modelId);
+            throw;
+        }
+    }
 }

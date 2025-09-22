@@ -590,6 +590,71 @@ public class EvaluationController : ControllerBase
     }
 
     /// <summary>
+    /// Deletes all evaluations for a specific model.
+    /// </summary>
+    /// <param name="modelId">The model ID to delete evaluations for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of evaluations deleted.</returns>
+    [HttpDelete("model/{modelId}")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteEvaluationsByModelId(
+        [FromRoute] string modelId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(modelId))
+            {
+                return BadRequest(new
+                {
+                    type = "validation_error",
+                    title = "Validation Error",
+                    status = 400,
+                    detail = "Model ID cannot be null or empty",
+                    traceId = HttpContext.TraceIdentifier
+                });
+            }
+
+            var deletedCount = await _evaluationService.DeleteEvaluationsByModelIdAsync(modelId, cancellationToken);
+
+            _logger.LogInformation("Deleted {Count} evaluations for model {ModelId}", deletedCount, modelId);
+
+            return Ok(new
+            {
+                modelId = modelId,
+                deletedCount = deletedCount,
+                message = $"Successfully deleted {deletedCount} evaluations for model {modelId}"
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument when deleting evaluations for model {ModelId}", modelId);
+            return BadRequest(new
+            {
+                type = "validation_error",
+                title = "Validation Error",
+                status = 400,
+                detail = ex.Message,
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error deleting evaluations for model {ModelId}", modelId);
+            return StatusCode(500, new
+            {
+                type = "internal_error",
+                title = "Internal Server Error",
+                status = 500,
+                detail = "An unexpected error occurred while deleting evaluations for the model",
+                traceId = HttpContext.TraceIdentifier
+            });
+        }
+    }
+
+    /// <summary>
     /// Gets the raw database content for debugging purposes.
     /// </summary>
     [HttpGet("debug/database-content")]

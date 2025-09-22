@@ -14,6 +14,14 @@ class ModelComparisonApp {
 
         this.initializeEventListeners();
 
+        // Helper method to get the correct API base URL
+        this.getApiBaseUrl = () => {
+            // Use HTTP port 5211 for API calls (where the API is actually running)
+            return window.location.protocol === 'https:'
+                ? 'http://localhost:5211'
+                : window.location.origin;
+        };
+
         // Ensure DOM is ready before loading models
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -173,8 +181,10 @@ class ModelComparisonApp {
     async loadAvailableModels() {
         console.log('DEBUG: loadAvailableModels started');
         try {
-            // Use the same protocol and port as the current page to avoid CORS issues
-            const baseUrl = window.location.origin;
+            // Use HTTP port 5211 for API calls (where the API is actually running)
+            const baseUrl = window.location.protocol === 'https:'
+                ? 'http://localhost:5211'
+                : window.location.origin;
             console.log(`DEBUG: Using base URL: ${baseUrl}`);
 
             const response = await fetch(`${baseUrl}/api/models/available`);
@@ -725,8 +735,8 @@ class ModelComparisonApp {
 
             console.log('Starting comparison with models:', this.selectedModels);
 
-            // Use the same protocol and port as the current page to avoid CORS issues
-            const baseUrl = window.location.origin;
+            // Use the correct API base URL
+            const baseUrl = this.getApiBaseUrl();
             console.log(`DEBUG: Using base URL for comparison: ${baseUrl}`);
 
             const response = await fetch(`${baseUrl}/api/comparison/execute`, {
@@ -1135,7 +1145,7 @@ class ModelComparisonApp {
                 this.showSavingState(container);
             }
 
-            const baseUrl = window.location.origin;
+            const baseUrl = this.getApiBaseUrl();
             const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
                 method: 'POST',
                 headers: {
@@ -1327,7 +1337,7 @@ class ModelComparisonApp {
         try {
             this.showCommentSavingState(textarea);
 
-            const baseUrl = window.location.origin;
+            const baseUrl = this.getApiBaseUrl();
             const response = await fetch(`${baseUrl}/api/evaluations/upsert`, {
                 method: 'POST',
                 headers: {
@@ -1443,7 +1453,7 @@ class ModelComparisonApp {
     // Load ranking data from the backend
     async loadRankingData(timeFilter = 'all', sortBy = 'rating') {
         try {
-            const baseUrl = window.location.origin;
+            const baseUrl = this.getApiBaseUrl();
             const endpoint = timeFilter === 'all'
                 ? `${baseUrl}/api/evaluations/statistics/all`
                 : `${baseUrl}/api/evaluations/statistics?timeframe=${timeFilter}`;
@@ -1569,6 +1579,11 @@ class ModelComparisonApp {
                             onclick="app.viewModelDetails('${modelData.modelId}')">
                         View Details
                     </button>
+                    <button class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300"
+                            onclick="app.deleteModel('${modelData.modelId}')"
+                            title="Delete all evaluations for this model">
+                        🗑️ Delete
+                    </button>
                 </div>
             </div>
         `;
@@ -1660,6 +1675,51 @@ class ModelComparisonApp {
     // View model details (placeholder for future enhancement)
     viewModelDetails(modelId) {
         this.displaySuccessMessage(`Viewing details for ${modelId} - feature coming soon!`);
+    }
+
+    // Delete model from rankings
+    async deleteModel(modelId) {
+        if (!confirm(`Are you sure you want to delete all evaluations for model "${modelId}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const baseUrl = this.getApiBaseUrl();
+            const response = await fetch(`${baseUrl}/api/evaluations/model/${modelId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                let errorMessage = `HTTP error! status: ${response.status}`;
+
+                if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            const result = await response.json();
+            console.log('Model deletion result:', result);
+
+            // Show success message
+            this.displaySuccessMessage(`Successfully deleted ${result.deletedCount} evaluations for model ${modelId}`);
+
+            // Reload ranking data to reflect changes
+            const timeFilter = document.getElementById('rankingTimeFilter')?.value || 'all';
+            const sortBy = document.getElementById('rankingSortBy')?.value || 'rating';
+            await this.loadRankingData(timeFilter, sortBy);
+
+        } catch (error) {
+            console.error('Error deleting model:', error);
+            this.displayErrorMessage(`Failed to delete model: ${error.message}`);
+        }
     }
 
     // Show main view (hide rankings, show main content)

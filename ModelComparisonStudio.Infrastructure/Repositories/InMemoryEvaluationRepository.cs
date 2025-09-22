@@ -247,4 +247,32 @@ public class InMemoryEvaluationRepository : IEvaluationRepository
 
         return Task.FromResult<IReadOnlyList<Evaluation>>(evaluations);
     }
+
+    /// <inheritdoc />
+    public Task<int> DeleteByModelIdAsync(string modelId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+            throw new ArgumentException("Model ID cannot be null or empty", nameof(modelId));
+
+        var evaluationsToDelete = _evaluations.Values
+            .Where(e => e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!evaluationsToDelete.Any())
+        {
+            return Task.FromResult(0);
+        }
+
+        var deletedCount = 0;
+        foreach (var evaluation in evaluationsToDelete)
+        {
+            if (_evaluations.TryRemove(evaluation.Id.ToString(), out _))
+            {
+                deletedCount++;
+                Interlocked.Decrement(ref _totalCount);
+            }
+        }
+
+        return Task.FromResult(deletedCount);
+    }
 }

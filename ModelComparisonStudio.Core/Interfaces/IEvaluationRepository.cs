@@ -126,4 +126,12 @@ public interface IEvaluationRepository
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of evaluations since the specified date.</returns>
     Task<IReadOnlyList<Evaluation>> GetAllSinceAsync(DateTime sinceDate, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes all evaluations for a specific model.
+    /// </summary>
+    /// <param name="modelId">The model ID to delete evaluations for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of evaluations deleted.</returns>
+    Task<int> DeleteByModelIdAsync(string modelId, CancellationToken cancellationToken = default);
 }

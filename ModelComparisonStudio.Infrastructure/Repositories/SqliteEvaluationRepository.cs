@@ -396,4 +396,39 @@ public class SqliteEvaluationRepository : IEvaluationRepository
             throw;
         }
     }
+
+    /// <inheritdoc />
+    public async Task<int> DeleteByModelIdAsync(string modelId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+            throw new ArgumentException("Model ID cannot be null or empty", nameof(modelId));
+
+        _logger.LogInformation("Deleting all evaluations for model {ModelId}", modelId);
+
+        try
+        {
+            var evaluationsToDelete = await _context.Evaluations
+                .Where(e => e.ModelId.ToLower() == modelId.ToLower())
+                .ToListAsync(cancellationToken);
+
+            if (!evaluationsToDelete.Any())
+            {
+                _logger.LogInformation("No evaluations found for model {ModelId}", modelId);
+                return 0;
+            }
+
+            _context.Evaluations.RemoveRange(evaluationsToDelete);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Successfully deleted {Count} evaluations for model {ModelId}",
+                evaluationsToDelete.Count, modelId);
+
+            return evaluationsToDelete.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete evaluations for model {ModelId}", modelId);
+            throw;
+        }
+    }
 }
