@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Details - Model Comparison Studio</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+
+<body class="bg-slate-900 text-white font-inter overflow-x-hidden">
+
+    <!-- Animated Gradient Background -->
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-x">
+        </div>
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-3xl"></div>
+    </div>
+
+    <!-- Header with Glassmorphism -->
+    <header class="relative bg-slate-800/30 backdrop-blur-xl border-b border-slate-700/30 shadow-modern-lg">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="group">
+                    <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent
+                             transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                        Model Comparison Studio
+                    </h1>
+                    <p class="text-slate-300 text-sm sm:text-base mt-1 font-light">
+                        Model Details
+                    </p>
+                </div>
+
+                <!-- Back to Rankings Button -->
+                <button id="backToRankingsBtn"
+                    class="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                    <span class="flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Rankings
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="flex items-center justify-center min-h-96">
+            <div class="text-center">
+                <div class="loading mb-4"></div>
+                <p class="text-slate-400">Loading model details...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-red-900/20 border border-red-700/50 rounded-2xl p-6 text-center">
+            <div class="text-red-400 mb-4">
+                <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-red-400 mb-2">Error Loading Model Details</h3>
+            <p id="errorMessage" class="text-slate-300 mb-4">Unable to load model information. Please try again.</p>
+            <button id="retryBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300">
+                Try Again
+            </button>
+        </div>
+
+        <!-- Model Details Content -->
+        <div id="modelDetailsContent" class="hidden space-y-8">
+
+            <!-- Model Header -->
+            <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div>
+                        <h2 id="modelName" class="text-2xl lg:text-3xl font-bold text-white mb-2">Model Name</h2>
+                        <p id="modelProvider" class="text-slate-400 text-lg">Provider</p>
+                    </div>
+                    <div class="text-center lg:text-right">
+                        <div id="averageRating" class="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent mb-1">
+                            0.0★
+                        </div>
+                        <p class="text-slate-400 text-sm">Average Rating</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Evaluations -->
+                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-sm font-medium">Total Evaluations</p>
+                            <p id="totalEvaluations" class="text-2xl font-bold text-white mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Response Time -->
+                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-sm font-medium">Avg Response Time</p>
+                            <p id="avgResponseTime" class="text-2xl font-bold text-white mt-1">0 ms</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Average Tokens -->
+                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-sm font-medium">Avg Token Count</p>
+                            <p id="avgTokens" class="text-2xl font-bold text-white mt-1">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comment Rate -->
+                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-400 text-sm font-medium">Comment Rate</p>
+                            <p id="commentRate" class="text-2xl font-bold text-white mt-1">0%</p>
+                        </div>
+                        <div class="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating Distribution -->
+            <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                    <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
+                    Rating Distribution
+                </h3>
+
+                <div id="ratingDistribution" class="space-y-3">
+                    <!-- Rating bars will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Recent Comments -->
+            <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                <h3 class="text-xl font-semibold text-white mb-6 flex items-center">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                    Recent Comments
+                </h3>
+
+                <div id="commentsSection" class="space-y-4">
+                    <!-- Comments will be populated by JavaScript -->
+                </div>
+
+                <div id="noComments" class="text-center py-8 text-slate-400 hidden">
+                    <svg class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <p>No comments available for this model yet.</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button id="selectModelBtn"
+                    class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Select This Model
+                    </span>
+                </button>
+
+                <button id="backToRankingsBtnBottom"
+                    class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-8 rounded-xl transition-all duration-300 border border-slate-600">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Rankings
+                    </span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modern CSS Custom Properties -->
+    <style>
+        :root {
+            --color-primary: #8b5cf6;
+            --color-secondary: #ec4899;
+            --color-accent: #06b6d4;
+            --color-slate-50: #f8fafc;
+            --color-slate-100: #f1f5f9;
+            --color-slate-200: #e2e8f0;
+            --color-slate-300: #cbd5e1;
+            --color-slate-400: #94a3b8;
+            --color-slate-500: #64748b;
+            --color-slate-600: #475569;
+            --color-slate-700: #334155;
+            --color-slate-800: #1e293b;
+            --color-slate-900: #0f172a;
+            --shadow-modern-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-modern-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-modern-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-modern-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --shadow-modern-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        .font-inter {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .shadow-modern-sm {
+            box-shadow: var(--shadow-modern-sm);
+        }
+
+        .shadow-modern-md {
+            box-shadow: var(--shadow-modern-md);
+        }
+
+        .shadow-modern-lg {
+            box-shadow: var(--shadow-modern-lg);
+        }
+
+        .shadow-modern-xl {
+            box-shadow: var(--shadow-modern-xl);
+        }
+
+        .shadow-modern-2xl {
+            box-shadow: var(--shadow-modern-2xl);
+        }
+
+        @keyframes gradient-x {
+            0%, 100% {
+                background-size: 200% 200%;
+                background-position: left center;
+            }
+            50% {
+                background-size: 200% 200%;
+                background-position: right center;
+            }
+        }
+
+        .animate-gradient-x {
+            animation: gradient-x 15s ease infinite;
+        }
+
+        .backdrop-blur-xl {
+            backdrop-filter: blur(24px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.7);
+        }
+
+        /* Rating bars */
+        .rating-bar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .rating-bar-fill {
+            height: 8px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .rating-bar-bg {
+            height: 8px;
+            background: rgba(71, 85, 105, 0.5);
+            border-radius: 4px;
+            flex: 1;
+        }
+    </style>
+
+    <script type="module" src="js/modules/model-details.js"></script>
+</body>
+
+</html>

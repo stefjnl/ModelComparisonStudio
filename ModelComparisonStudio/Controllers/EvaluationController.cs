@@ -409,11 +409,11 @@ public class EvaluationController : ControllerBase
     /// <param name="take">Number of evaluations to take (default: 50).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of evaluations for the specified model.</returns>
-    [HttpGet("model/{modelId}")]
+    [HttpGet("model")]
     [ProducesResponseType(typeof(IReadOnlyList<EvaluationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetEvaluationsByModelId(
-        [FromRoute] string modelId,
+        [FromQuery] string modelId,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 50,
         CancellationToken cancellationToken = default)
@@ -443,7 +443,7 @@ public class EvaluationController : ControllerBase
     /// <param name="modelId">The model ID.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Evaluation statistics for the specified model.</returns>
-    [HttpGet("statistics/model/{modelId}")]
+    [HttpGet("statistics/model/{*modelId}")]
     [ProducesResponseType(typeof(EvaluationStatisticsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetEvaluationStatistics(
@@ -595,7 +595,7 @@ public class EvaluationController : ControllerBase
     /// <param name="modelId">The model ID to delete evaluations for.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The number of evaluations deleted.</returns>
-    [HttpDelete("model/{modelId}")]
+    [HttpDelete("model/{*modelId}")]
     [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  modelcomparisonstudio:
+    build: .
+    ports:
+      - "8085:8080"
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
