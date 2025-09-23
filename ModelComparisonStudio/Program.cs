@@ -74,12 +74,18 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
-// Initialize database
-using (var scope = builder.Services.BuildServiceProvider().CreateScope())
+var app = builder.Build();
+
+// Test logging configuration
+var appLogger = app.Services.GetRequiredService<ILogger<Program>>();
+appLogger.LogInformation("Application starting up - logging is working!");
+
+// Initialize database using the application's service provider
+using (var scope = app.Services.CreateScope())
 {
     var dbLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var currentDir = Directory.GetCurrentDirectory();
-    var contentRootPath = builder.Environment.ContentRootPath;
+    var contentRootPath = app.Environment.ContentRootPath;
     dbLogger.LogInformation("Current working directory: {CurrentDir}", currentDir);
     dbLogger.LogInformation("Content root path: {ContentRootPath}", contentRootPath);
     dbLogger.LogInformation("Database path will be: {DbPath}", Path.Combine(contentRootPath, "evaluations.db"));
@@ -96,12 +102,6 @@ using (var scope = builder.Services.BuildServiceProvider().CreateScope())
         throw;
     }
 }
-
-var app = builder.Build();
-
-// Test logging configuration
-var appLogger = app.Services.GetRequiredService<ILogger<Program>>();
-appLogger.LogInformation("Application starting up - logging is working!");
 
 // Add middleware to handle JSON parsing errors
 app.Use(async (context, next) =>
@@ -134,15 +134,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseCors("AllowFrontend");
+app.UseRouting();
 
-app.MapControllers();
+app.UseCors("AllowFrontend");
 
 // Serve static files from wwwroot
 app.UseStaticFiles();
 
 // Serve default file (index.html) when no specific file is requested
 app.UseDefaultFiles();
+
+app.MapControllers();
 
 // Root endpoint to serve the frontend
 app.MapGet("/", () => Results.Redirect("/index.html"));

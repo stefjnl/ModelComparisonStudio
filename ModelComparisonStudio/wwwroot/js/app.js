@@ -209,6 +209,9 @@ const ModelComparisonApp = (() => {
         document.getElementById('runComparisonBtn').addEventListener('click', () => this.runComparison());
         document.getElementById('promptInput').addEventListener('input', () => this.updateRunButtonState());
 
+        // Navigation
+        document.getElementById('showModelDetailsBtn')?.addEventListener('click', () => this.showModelDetails());
+
         // Sidebar toggle functionality
         this.initializeSidebarToggle();
 
@@ -1636,9 +1639,10 @@ const ModelComparisonApp = (() => {
         this.showMainView();
     }
 
-    // View model details (placeholder for future enhancement)
+    // View model details - navigate to details page
     viewModelDetails(modelId) {
-        this.displaySuccessMessage(`Viewing details for ${modelId} - feature coming soon!`);
+        // Navigate to the model details page with the model ID as a query parameter
+        window.location.href = `model-details.html?modelId=${encodeURIComponent(modelId)}`;
     }
 
     // Delete model from rankings
@@ -1663,6 +1667,12 @@ const ModelComparisonApp = (() => {
             console.error('Error deleting model:', error);
             this.displayErrorMessage(`Failed to delete model: ${error.message}`);
         }
+    }
+
+    // Show model details - navigate to rankings page where users can access model details
+    showModelDetails() {
+        this.showRankingDashboard();
+        this.displaySuccessMessage('Navigate to rankings to view detailed model information');
     }
 
     // Show main view (hide rankings, show main content)
@@ -1759,6 +1769,9 @@ return {
     selectModelForComparison: (modelId) => appInstance.selectModelForComparison(modelId),
     viewModelDetails: (modelId) => appInstance.viewModelDetails(modelId),
     deleteModel: (modelId) => appInstance.deleteModel(modelId),
+
+    // Navigation methods
+    showModelDetails: () => appInstance.showModelDetails(),
 
     // Additional public methods that might be used by HTML
     showRankingDashboard: () => appInstance.showRankingDashboard(),
