@@ -64,9 +64,14 @@ class ModelDetailsPage {
                 throw new Error(`Model "${this.modelId}" not found in statistics`);
             }
 
-            // For now, we don't have individual comments in the API
-            // This would need a new endpoint to get evaluations with comments
-            this.evaluations = [];
+            // Load all evaluations and filter for this model
+            const evaluationsResponse = await fetch('/api/evaluations');
+            if (!evaluationsResponse.ok) {
+                throw new Error(`Failed to load evaluations: ${evaluationsResponse.status}`);
+            }
+            const allEvaluations = await evaluationsResponse.json();
+            // Filter evaluations for this specific model
+            this.evaluations = allEvaluations.filter(e => e.modelId === this.modelId);
 
             this.renderModelData();
             this.hideLoading();
@@ -165,8 +170,8 @@ class ModelDetailsPage {
 
         // Filter and sort comments (most recent first, only with comments)
         const comments = this.evaluations
-            .filter(e => e.comment && e.comment.trim())
-            .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+            .filter(e => e.Comment && e.Comment.trim())
+            .sort((a, b) => new Date(b.UpdatedAt) - new Date(a.UpdatedAt))
             .slice(0, 5); // Show only 5 most recent
 
         if (comments.length === 0) {
@@ -178,8 +183,8 @@ class ModelDetailsPage {
             const commentCard = document.createElement('div');
             commentCard.className = 'bg-slate-700/30 rounded-xl p-4 border border-slate-600/30';
 
-            const rating = evaluation.rating ? `${evaluation.rating}★` : 'No rating';
-            const date = new Date(evaluation.updatedAt).toLocaleDateString();
+            const rating = evaluation.Rating ? `${evaluation.Rating}★` : 'No rating';
+            const date = new Date(evaluation.UpdatedAt).toLocaleDateString();
 
             commentCard.innerHTML = `
                 <div class="flex items-start justify-between mb-2">
@@ -188,7 +193,7 @@ class ModelDetailsPage {
                         <div class="text-slate-400 text-xs">${date}</div>
                     </div>
                 </div>
-                <p class="text-slate-200 text-sm leading-relaxed">${this.escapeHtml(evaluation.comment)}</p>
+                <p class="text-slate-200 text-sm leading-relaxed">${this.escapeHtml(evaluation.Comment)}</p>
             `;
 
             container.appendChild(commentCard);
