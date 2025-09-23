@@ -8,17 +8,15 @@ namespace ModelComparisonStudio.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ComparisonController : ControllerBase
+    public class ComparisonController : BaseController
     {
         private readonly AIService _aiService;
-        private readonly ILogger<ComparisonController> _logger;
 
         public ComparisonController(
             AIService aiService,
-            ILogger<ComparisonController> logger)
+            ILogger<ComparisonController> logger) : base(logger)
         {
             _aiService = aiService;
-            _logger = logger;
         }
 
         /// <summary>
@@ -61,15 +59,7 @@ namespace ModelComparisonStudio.Controllers
                         _ => error.ErrorMessage
                     }).ToList();
 
-                    return BadRequest(new
-                    {
-                        type = "validation_error",
-                        title = "Validation Error",
-                        status = 400,
-                        errors = friendlyErrors,
-                        traceId = HttpContext.TraceIdentifier,
-                        userMessage = friendlyErrors.FirstOrDefault() ?? "Please check your input and try again."
-                    });
+                    return BadRequest(CreateValidationErrorResponse(friendlyErrors));
                 }
 
                 // Validate that models are available
@@ -118,12 +108,7 @@ namespace ModelComparisonStudio.Controllers
             {
                 _logger.LogError(ex, "Unexpected error during comparison execution");
 
-                return StatusCode(500, new
-                {
-                    error = "Internal server error",
-                    message = "An unexpected error occurred while executing the comparison",
-                    correlationId = Guid.NewGuid().ToString()
-                });
+                return StatusCode(500, CreateErrorResponse(ex));
             }
         }
 
