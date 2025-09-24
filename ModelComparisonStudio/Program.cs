@@ -71,8 +71,10 @@ builder.Services.AddScoped<IPromptTemplateRepository, SqlitePromptTemplateReposi
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddScoped<PromptCategoryService>();
 builder.Services.AddScoped<PromptTemplateService>();
-
 builder.Services.AddScoped<TemplateStatisticsService>();
+
+// Register performance monitoring services
+builder.Services.AddSingleton<ModelComparisonStudio.Infrastructure.Services.QueryPerformanceMonitor>();
 
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
