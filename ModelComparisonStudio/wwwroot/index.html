@@ -17,6 +17,7 @@
 
     <!-- Custom CSS -->
     <link href="css/styles.css" rel="stylesheet">
+    <link href="css/components/template-cards.css" rel="stylesheet">
 </head>
 
 <body class="bg-slate-900 text-white font-inter overflow-x-hidden">
@@ -199,9 +200,8 @@
             <!-- Main Content Area -->
             <div id="mainContent" class="lg:col-span-9 space-y-6 main-content-expanded">
 
-                <!-- Template Library and Prompt Input Section -->
+                <!-- Template Library Section (Reduced Height) -->
                 <div class="space-y-6">
-                    <!-- Template Library Section -->
                     <div
                         class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
                         <div class="flex justify-between items-center mb-4">
@@ -209,23 +209,25 @@
                                 <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
                                 Prompt Templates
                             </h2>
-                            <button id="showTemplateLibraryBtn"
-                                class="hidden bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                <span class="flex items-center">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                    </svg>
-                                    Template Library
-                                </span>
-                            </button>
-                            <button id="hideTemplateLibraryBtn"
-                                class="bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                Hide
-                            </button>
+                            <div class="flex gap-2">
+                                <button id="showTemplateLibraryBtn"
+                                    class="hidden bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>
+                                        Template Library
+                                    </span>
+                                </button>
+                                <button id="hideTemplateLibraryBtn"
+                                    class="bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                    Hide
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Template Library (Initially visible) -->
+                        <!-- Template Library with compact layout -->
                         <div id="templateLibrary" class="space-y-4">
                             <div class="template-controls flex flex-wrap gap-3 mb-4">
                                 <div class="flex-1 min-w-[200px]">
@@ -237,10 +239,6 @@
                                         class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
                                         Create New
                                     </button>
-                                    <button id="hideTemplateLibraryBtn"
-                                        class="bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                        Hide
-                                    </button>
                                 </div>
                             </div>
 
@@ -249,16 +247,16 @@
                                 <!-- Category filters will be populated dynamically -->
                             </div>
 
-                            <!-- Template Library Content -->
-                            <div id="templateLibraryContent" class="template-library-content max-h-96 overflow-y-auto">
+                            <!-- Template Library Content with reduced max height -->
+                            <div id="templateLibraryContent" class="template-library-content max-h-60 overflow-y-auto">
                                 <!-- Templates will be populated dynamically -->
                             </div>
                         </div>
                     </div>
-
-                    <!-- Prompt Input Section -->
-                    <div
-                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    
+                    <!-- Prompt Input Section (Moved to be more prominent) -->
+                    <div id="promptSection"
+                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl test-prompt-sticky">
                         <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
                             <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
                             Test Prompt

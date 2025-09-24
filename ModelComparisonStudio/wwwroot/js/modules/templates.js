@@ -353,7 +353,7 @@ export class TemplateManager {
                 const categoryId = category.Id || category.id;
                 const templates = templatesByCategory[categoryId] || [];
                 if (templates.length > 0) {
-                    html += this.renderCategorySection(category, templates);
+                    html += this.renderCategorySectionWithProgressiveDisclosure(category, templates);
                 }
             });
             
@@ -364,6 +364,21 @@ export class TemplateManager {
         
         contentContainer.innerHTML = html;
         this.attachTemplateEvents();
+    }
+    
+    renderCategorySectionWithProgressiveDisclosure(category, templates) {
+        return `
+            <div class="category-section" data-category-id="${category.id || category.Id}">
+                <div class="category-header">
+                    <span class="category-color" style="background-color: ${category.color || '#6b7280'}"></span>
+                    <h4 class="category-name">${category.name || category.Name}</h4>
+                    <span class="category-count">${templates.length} templates</span>
+                </div>
+                <div class="template-grid">
+                    ${templates.map(template => this.renderTemplateCard(template)).join('')}
+                </div>
+            </div>
+        `;
     }
 
     renderCategorySection(category, templates) {
@@ -413,8 +428,11 @@ export class TemplateManager {
         const isSelected = this.selectedTemplateId === templateId;
         const variableCount = this.parseVariables(templateContent).length;
 
+        // Determine if this card should be expanded (default to collapsed for space saving)
+        const isExpanded = false; // Default to collapsed
+
         return `
-            <div class="template-card ${isSelected ? 'selected' : ''}" data-template-id="${templateId}">
+            <div class="template-card compact-template-card ${isSelected ? 'selected' : ''} ${isExpanded ? 'expanded' : 'collapsed'}" data-template-id="${templateId}">
                 <div class="template-card-header">
                     <h5 class="template-name">${templateTitle || 'Untitled Template'}</h5>
                     <div class="template-card-actions">
@@ -435,18 +453,31 @@ export class TemplateManager {
                         <button class="favorite-btn ${isFavorite ? 'favorited' : ''}" data-template-id="${templateId}" title="Toggle Favorite">
                             ${isFavorite ? '★' : '☆'}
                         </button>
+                        <button class="chevron-btn" title="Expand/Collapse">
+                            <svg class="chevron w-4 h-4 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <div class="template-description">${templateDescription || 'No description available'}</div>
-                <div class="template-meta">
-                    <span class="template-variables">${variableCount} variables</span>
-                    <span class="template-usage">${templateUsageCount || 0} uses</span>
-                </div>
-                <div class="template-actions">
-                    <button class="use-template-btn" data-template-id="${templateId}">Use Template</button>
+                <div class="template-description">${templateDescription ? this.truncateText(templateDescription, 80) : 'No description available'}</div>
+                <div class="detailed-info ${isExpanded ? 'expanded' : ''}">
+                    <div class="template-meta">
+                        <span class="template-variables">${variableCount} variables</span>
+                        <span class="template-usage">${templateUsageCount || 0} uses</span>
+                    </div>
+                    <div class="template-actions">
+                        <button class="use-template-btn" data-template-id="${templateId}">Use Template</button>
+                    </div>
                 </div>
             </div>
         `;
+    }
+
+    // Helper method to truncate text
+    truncateText(text, maxLength) {
+        if (!text) return '';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
     }
 
     renderCategoryFilters() {
@@ -675,7 +706,7 @@ export class TemplateManager {
         
         // Render a single "Filtered Results" section
         if (templates.length > 0) {
-            html += this.renderCategorySection({
+            html += this.renderCategorySectionWithProgressiveDisclosure({
                 id: 'filtered',
                 name: 'Filtered Results',
                 color: '#6b7280'

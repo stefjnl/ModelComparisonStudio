@@ -2,6 +2,7 @@ import { escapeHtml, formatResponseContent, generatePromptId, isValidModelFormat
 import { saveModelsToStorage, loadModelsFromStorage } from './modules/storage.js';
 import { displayErrorMessage, displaySuccessMessage } from './modules/ui.js';
 import { templateManager } from './modules/templates.js';
+import { initializeTemplateUI } from './modules/template-ui.js';
 
 // Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
@@ -174,6 +175,9 @@ const ModelComparisonApp = (() => {
     
         // Use the organized API functions
         this.api = api;
+    
+        // Initialize template UI improvements
+        this.templateUI = initializeTemplateUI(this.templateManager);
     
         // Ensure DOM is ready before loading models
         if (document.readyState === 'loading') {
@@ -1455,6 +1459,49 @@ const ModelComparisonApp = (() => {
         if (createBtn) {
             createBtn.addEventListener('click', () => this.showTemplateEditor());
         }
+        
+        // Initialize template UI improvements for compact view
+        this.initializeTemplateUIImprovements();
+    }
+
+    // Initialize UI improvements for templates
+    initializeTemplateUIImprovements() {
+        // Add click handler for chevron buttons to expand/collapse template cards
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.chevron-btn')) {
+                const card = e.target.closest('.template-card');
+                if (card) {
+                    this.toggleTemplateCardExpansion(card);
+                }
+            }
+        });
+        
+        // Set up progressive disclosure for template cards
+        this.setupProgressiveDisclosure();
+    }
+
+    // Toggle template card expansion state
+    toggleTemplateCardExpansion(card) {
+        const isExpanded = card.classList.contains('expanded');
+        if (isExpanded) {
+            card.classList.remove('expanded');
+            card.classList.add('collapsed');
+        } else {
+            card.classList.remove('collapsed');
+            card.classList.add('expanded');
+        }
+        
+        // Update the chevron icon
+        const chevron = card.querySelector('.chevron');
+        if (chevron) {
+            chevron.classList.toggle('rotate-180');
+        }
+    }
+
+    // Setup progressive disclosure for template cards
+    setupProgressiveDisclosure() {
+        // For now, we'll just ensure that the initial rendering uses compact cards
+        // The actual progressive disclosure is handled in the templates.js render method
     }
 
     toggleTemplateLibrary() {
