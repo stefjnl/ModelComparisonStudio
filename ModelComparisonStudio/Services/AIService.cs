@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Core.Entities;
 using ModelComparisonStudio.Core.ValueObjects;
 using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
 using static ModelComparisonStudio.Core.ValueObjects.AIProviderUrls;
@@ -219,7 +220,7 @@ namespace ModelComparisonStudio.Services
                             ModelId = modelId,
                             Response = $"Error: {response.StatusCode} - {response.ReasonPhrase}",
                             ResponseTimeMs = apiResponseTime,
-                            Status = "error",
+                            Status = ModelResultStatus.Error.ToString(),
                             ErrorMessage = errorContent
                         };
                     }
@@ -335,7 +336,7 @@ namespace ModelComparisonStudio.Services
                         Response = firstChoice.Message?.Content ?? string.Empty,
                         ResponseTimeMs = apiResponseTime,
                         TokenCount = deserializedResponse?.Usage?.TotalTokens,
-                        Status = "success"
+                        Status = ModelResultStatus.Success.ToString()
                     };
 
                     _logger.LogInformation("=== Analysis Complete ===");
@@ -359,7 +360,7 @@ namespace ModelComparisonStudio.Services
                         ModelId = modelId,
                         Response = "Error: Request timeout - the model took too long to respond. Try a shorter prompt.",
                         ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                        Status = "error",
+                        Status = ModelResultStatus.Error.ToString(),
                         ErrorMessage = $"Request timeout after {stopwatch.ElapsedMilliseconds}ms. The prompt may be too long or the model may be overloaded."
                     };
                 }
@@ -374,7 +375,7 @@ namespace ModelComparisonStudio.Services
                         ModelId = modelId,
                         Response = "Error: Request was cancelled.",
                         ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                        Status = "error",
+                        Status = ModelResultStatus.Error.ToString(),
                         ErrorMessage = "Request was cancelled by user."
                     };
                 }
@@ -389,7 +390,7 @@ namespace ModelComparisonStudio.Services
                         ModelId = modelId,
                         Response = $"Error: HTTP request failed - {hex.Message}",
                         ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                        Status = "error",
+                        Status = ModelResultStatus.Error.ToString(),
                         ErrorMessage = $"HTTP request error: {hex.Message}. This may be due to network issues or request size limits."
                     };
                 }
@@ -404,7 +405,7 @@ namespace ModelComparisonStudio.Services
                     ModelId = modelId,
                     Response = $"Error: {ex.Message}",
                     ResponseTimeMs = stopwatch.ElapsedMilliseconds,
-                    Status = "error",
+                    Status = ModelResultStatus.Error.ToString(),
                     ErrorMessage = ex.Message
                 };
             }
@@ -468,7 +469,7 @@ namespace ModelComparisonStudio.Services
                         ModelId = modelId,
                         Response = $"Unexpected error: {ex.Message}",
                         ResponseTimeMs = 0,
-                        Status = "error",
+                        Status = ModelResultStatus.Error.ToString(),
                         ErrorMessage = ex.Message
                     });
                 }
@@ -557,7 +558,7 @@ namespace ModelComparisonStudio.Services
         public string Response { get; set; } = string.Empty;
         public long ResponseTimeMs { get; set; }
         public int? TokenCount { get; set; }
-        public string Status { get; set; } = "success";
+        public string Status { get; set; } = ModelResultStatus.Success.ToString();
         public string ErrorMessage { get; set; } = string.Empty;
     }
 
@@ -570,7 +571,7 @@ namespace ModelComparisonStudio.Services
         public string Response { get; set; } = string.Empty;
         public long ResponseTimeMs { get; set; }
         public int? TokenCount { get; set; }
-        public string Status { get; set; } = "success";
+        public string Status { get; set; } = ModelResultStatus.Success.ToString();
         public string ErrorMessage { get; set; } = string.Empty;
     }
 

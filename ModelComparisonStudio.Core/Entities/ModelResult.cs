@@ -31,10 +31,10 @@ public class ModelResult
     public int? TokenCount { get; set; }
 
     /// <summary>
-    /// Status of the model execution ("success", "error", "timeout").
+    /// Status of the model execution.
     /// </summary>
     [Required]
-    public string Status { get; set; } = "success";
+    public ModelResultStatus Status { get; set; } = ModelResultStatus.Success;
 
     /// <summary>
     /// Error message if the model failed (optional).
@@ -58,7 +58,7 @@ public class ModelResult
     /// <param name="response">The response from the model.</param>
     /// <param name="responseTimeMs">Response time in milliseconds.</param>
     /// <param name="tokenCount">Number of tokens used (optional).</param>
-    /// <param name="status">Status of the model execution ("success", "error", "timeout").</param>
+    /// <param name="status">Status of the model execution.</param>
     /// <param name="errorMessage">Error message if the model failed (optional).</param>
     /// <param name="provider">Provider name.</param>
     /// <returns>A new model result.</returns>
@@ -67,7 +67,7 @@ public class ModelResult
         string response,
         long responseTimeMs,
         int? tokenCount = null,
-        string status = "success",
+        ModelResultStatus status = ModelResultStatus.Success,
         string errorMessage = "",
         string provider = "")
     {
@@ -86,10 +86,7 @@ public class ModelResult
             throw new ArgumentOutOfRangeException(nameof(responseTimeMs), "Response time must be non-negative.");
         }
 
-        if (string.IsNullOrWhiteSpace(status))
-        {
-            throw new ArgumentException("Status cannot be null or empty.", nameof(status));
-        }
+
 
         return new ModelResult
         {
@@ -140,7 +137,7 @@ public class ModelResult
             Response = response,
             ResponseTimeMs = responseTimeMs,
             TokenCount = tokenCount,
-            Status = "success",
+            Status = ModelResultStatus.Success,
             Provider = provider
         };
     }
@@ -179,7 +176,7 @@ public class ModelResult
             ModelId = modelId,
             Response = $"Error: {errorMessage}",
             ResponseTimeMs = responseTimeMs,
-            Status = "error",
+            Status = ModelResultStatus.Error,
             ErrorMessage = errorMessage,
             Provider = provider
         };
@@ -212,7 +209,7 @@ public class ModelResult
             ModelId = modelId,
             Response = "Error: Request timeout - the model took too long to respond.",
             ResponseTimeMs = timeoutMs,
-            Status = "timeout",
+            Status = ModelResultStatus.Timeout,
             ErrorMessage = $"Request timeout after {timeoutMs}ms",
             Provider = provider
         };
@@ -221,28 +218,28 @@ public class ModelResult
     /// <summary>
     /// Determines if this result was successful.
     /// </summary>
-    /// <returns>True if the status is "success", false otherwise.</returns>
+    /// <returns>True if the status is Success, false otherwise.</returns>
     public bool IsSuccessful()
     {
-        return Status == "success";
+        return Status == ModelResultStatus.Success;
     }
 
     /// <summary>
     /// Determines if this result represents an error.
     /// </summary>
-    /// <returns>True if the status is "error", false otherwise.</returns>
+    /// <returns>True if the status is Error, false otherwise.</returns>
     public bool IsError()
     {
-        return Status == "error";
+        return Status == ModelResultStatus.Error;
     }
 
     /// <summary>
     /// Determines if this result represents a timeout.
     /// </summary>
-    /// <returns>True if the status is "timeout", false otherwise.</returns>
+    /// <returns>True if the status is Timeout, false otherwise.</returns>
     public bool IsTimeout()
     {
-        return Status == "timeout";
+        return Status == ModelResultStatus.Timeout;
     }
 
     /// <summary>

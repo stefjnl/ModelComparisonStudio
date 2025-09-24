@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ModelComparisonStudio.Core.Entities;
 
 namespace ModelComparisonStudio.Models
 {
@@ -39,18 +40,18 @@ namespace ModelComparisonStudio.Models
         /// <summary>
         /// Number of successful model responses
         /// </summary>
-        public int SuccessfulModels => Results.Count(r => r.Status == "success");
+        public int SuccessfulModels => Results.Count(r => r.Status == "Success");
 
         /// <summary>
         /// Number of failed model responses
         /// </summary>
-        public int FailedModels => Results.Count(r => r.Status == "error");
+        public int FailedModels => Results.Count(r => r.Status == "Error");
 
         /// <summary>
         /// Average response time across all models (in milliseconds)
         /// </summary>
-        public double AverageResponseTime => Results.Any(r => r.Status == "success")
-            ? Results.Where(r => r.Status == "success").Average(r => r.ResponseTimeMs)
+        public double AverageResponseTime => Results.Any(r => r.Status == "Success")
+            ? Results.Where(r => r.Status == "Success").Average(r => r.ResponseTimeMs)
             : 0;
 
         /// <summary>
@@ -88,10 +89,10 @@ namespace ModelComparisonStudio.Models
         public int? TokenCount { get; set; }
 
         /// <summary>
-        /// Status of the model execution ("success", "error", "timeout")
+        /// Status of the model execution
         /// </summary>
         [Required]
-        public string Status { get; set; } = "success";
+        public string Status { get; set; } = "Success";
 
         /// <summary>
         /// Error message if the model failed (optional)

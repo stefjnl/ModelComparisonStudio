@@ -41,18 +41,18 @@ public class ComparisonResponseDto
     /// <summary>
     /// Number of successful model responses.
     /// </summary>
-    public int SuccessfulModels => Results.Count(r => r.Status == "success");
+    public int SuccessfulModels => Results.Count(r => r.Status == ModelResultStatus.Success.ToString());
 
     /// <summary>
     /// Number of failed model responses.
     /// </summary>
-    public int FailedModels => Results.Count(r => r.Status == "error");
+    public int FailedModels => Results.Count(r => r.Status == ModelResultStatus.Error.ToString());
 
     /// <summary>
     /// Average response time across all models (in milliseconds).
     /// </summary>
-    public double AverageResponseTime => Results.Any(r => r.Status == "success")
-        ? Results.Where(r => r.Status == "success").Average(r => r.ResponseTimeMs)
+    public double AverageResponseTime => Results.Any(r => r.Status == ModelResultStatus.Success.ToString())
+        ? Results.Where(r => r.Status == ModelResultStatus.Success.ToString()).Average(r => r.ResponseTimeMs)
         : 0;
 
     /// <summary>
@@ -128,10 +128,10 @@ public class ModelResultDto
     public int? TokenCount { get; set; }
 
     /// <summary>
-    /// Status of the model execution ("success", "error", "timeout").
+    /// Status of the model execution.
     /// </summary>
     [Required]
-    public string Status { get; set; } = "success";
+    public string Status { get; set; } = ModelResultStatus.Success.ToString();
 
     /// <summary>
     /// Error message if the model failed (optional).
@@ -156,7 +156,7 @@ public class ModelResultDto
             Response = modelResult.Response,
             ResponseTimeMs = modelResult.ResponseTimeMs,
             TokenCount = modelResult.TokenCount,
-            Status = modelResult.Status,
+            Status = modelResult.Status.ToString(),
             ErrorMessage = modelResult.ErrorMessage,
             Provider = modelResult.Provider
         };
@@ -168,12 +168,17 @@ public class ModelResultDto
     /// <returns>A domain model result.</returns>
     public ModelResult ToDomainModel()
     {
+        if (!Enum.TryParse<ModelResultStatus>(Status, out var statusEnum))
+        {
+            statusEnum = ModelResultStatus.Error; // Default to error if parsing fails
+        }
+
         return ModelResult.Create(
             ModelId,
             Response,
             ResponseTimeMs,
             TokenCount,
-            Status,
+            statusEnum,
             ErrorMessage,
             Provider);
     }
