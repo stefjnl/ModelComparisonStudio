@@ -38,18 +38,18 @@ public class Comparison
     /// <summary>
     /// Number of successful model responses.
     /// </summary>
-    public int SuccessfulModels => Results.Count(r => r.Status == "success");
+    public int SuccessfulModels => Results.Count(r => r.Status == ModelResultStatus.Success);
 
     /// <summary>
     /// Number of failed model responses.
     /// </summary>
-    public int FailedModels => Results.Count(r => r.Status == "error");
+    public int FailedModels => Results.Count(r => r.Status == ModelResultStatus.Error);
 
     /// <summary>
     /// Average response time across all models (in milliseconds).
     /// </summary>
-    public double AverageResponseTime => Results.Any(r => r.Status == "success")
-        ? Results.Where(r => r.Status == "success").Average(r => r.ResponseTimeMs)
+    public double AverageResponseTime => Results.Any(r => r.Status == ModelResultStatus.Success)
+        ? Results.Where(r => r.Status == ModelResultStatus.Success).Average(r => r.ResponseTimeMs)
         : 0;
 
     /// <summary>
@@ -114,7 +114,7 @@ public class Comparison
     public ModelResult? GetFastestSuccessfulResponse()
     {
         return Results
-            .Where(r => r.Status == "success")
+            .Where(r => r.Status == ModelResultStatus.Success)
             .OrderBy(r => r.ResponseTimeMs)
             .FirstOrDefault();
     }
@@ -126,7 +126,7 @@ public class Comparison
     public ModelResult? GetSlowestSuccessfulResponse()
     {
         return Results
-            .Where(r => r.Status == "success")
+            .Where(r => r.Status == ModelResultStatus.Success)
             .OrderByDescending(r => r.ResponseTimeMs)
             .FirstOrDefault();
     }

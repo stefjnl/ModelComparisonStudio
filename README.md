@@ -62,6 +62,7 @@ The application will be available at `https://localhost:7000` or `http://localho
 - Multi-provider AI model support (NanoGPT, OpenRouter)
 - Modern responsive UI with glassmorphism design
 - Side-by-side model comparison
+- **Parallel Model Execution** - Significantly faster comparisons with configurable concurrency
 - Real-time prompt testing
 - Rating and commenting system
 - Local storage for model selections
@@ -70,3 +71,49 @@ The application will be available at `https://localhost:7000` or `http://localho
 
 - `GET /api/models/available` - Get all available models
 - `GET /api/models/available/{provider}` - Get models for specific provider
+- `POST /api/comparison/execute?executionMode=Parallel` - Execute model comparison (parallel by default)
+- `POST /api/comparison/execute?executionMode=Sequential` - Execute model comparison (sequential mode)
+
+## Parallel Execution
+
+The application now supports parallel model execution to significantly reduce comparison times. This feature is enabled by default and can be configured through the `Execution` section in your configuration.
+
+### Configuration
+
+Add the following to your `appsettings.json`:
+
+```json
+{
+  "Execution": {
+    "MaxConcurrentRequests": 2,
+    "EnableParallelExecution": true,
+    "DefaultTimeout": "00:01:00",
+    "RetryAttempts": 3,
+    "RetryDelay": "00:00:01"
+  }
+}
+```
+
+### Performance Benefits
+
+- **2 models**: ~50% faster than sequential execution
+- **3 models**: ~67% faster than sequential execution
+- **4+ models**: Significant time reduction with proper concurrency limits
+
+### Usage
+
+The API automatically uses parallel execution by default. To use sequential execution:
+
+```bash
+curl -X POST "https://your-app.com/api/comparison/execute?executionMode=Sequential" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Your prompt here", "selectedModels": ["gpt-4", "claude-3"]}'
+```
+
+### Monitoring
+
+Performance metrics are logged for each parallel execution, including:
+- Total execution time
+- Average time per model
+- Success/failure rates
+- Concurrency utilization

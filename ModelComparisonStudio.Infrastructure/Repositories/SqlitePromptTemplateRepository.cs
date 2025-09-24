@@ -29,12 +29,14 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<PromptTemplate?> GetTemplateByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
     }
 
     public async Task<IEnumerable<PromptTemplate>> GetAllTemplatesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -42,6 +44,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetAllTemplatesWithCategoriesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -49,6 +52,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetTemplatesByCategoryAsync(string categoryId, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.Category == categoryId)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -57,6 +61,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetTemplatesByCategoryWithCategoriesAsync(string categoryId, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.Category == categoryId)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -64,6 +69,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetTemplatesByTypeAsync(bool isSystemTemplate, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.IsSystemTemplate == isSystemTemplate)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -76,6 +82,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
 
         var term = searchTerm.ToLowerInvariant();
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t =>
                 t.Title.ToLower().Contains(term) ||
                 t.Description.ToLower().Contains(term) ||
@@ -91,6 +98,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
 
         var term = searchTerm.ToLowerInvariant();
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t =>
                 t.Title.ToLower().Contains(term) ||
                 t.Description.ToLower().Contains(term) ||
@@ -102,6 +110,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetFavoriteTemplatesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.IsFavorite)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -110,6 +119,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetFavoriteTemplatesWithCategoriesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.IsFavorite)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(cancellationToken);
@@ -207,12 +217,14 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<PromptCategory?> GetCategoryByIdAsync(string id, CancellationToken cancellationToken = default)
     {
         return await _context.PromptCategories
+            .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     public async Task<IEnumerable<PromptCategory>> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptCategories
+            .AsNoTracking()
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
     }
@@ -220,6 +232,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptCategory>> GetSystemCategoriesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.PromptCategories
+            .AsNoTracking()
             .Where(c => SystemCategories.DefaultCategories.Any(sc => sc.Id == c.Id))
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
@@ -325,6 +338,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetMostUsedTemplatesAsync(int limit = 10, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.UsageCount > 0)
             .OrderByDescending(t => t.UsageCount)
             .ThenByDescending(t => t.CreatedAt)
@@ -335,6 +349,7 @@ public class SqlitePromptTemplateRepository : IPromptTemplateRepository
     public async Task<IEnumerable<PromptTemplate>> GetRecentTemplatesAsync(int limit = 10, CancellationToken cancellationToken = default)
     {
         return await _context.PromptTemplates
+            .AsNoTracking()
             .Where(t => t.LastUsedAt != null)
             .OrderByDescending(t => t.LastUsedAt)
             .Take(limit)

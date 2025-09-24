@@ -127,9 +127,9 @@ public class SqliteEvaluationRepository : IEvaluationRepository
 
         try
         {
-            return _context.Evaluations
-                .AsEnumerable()
-                .FirstOrDefault(e => e.Id.Value == id.Value);
+            return await _context.Evaluations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id.Value == id.Value, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -151,6 +151,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
+                .AsNoTracking()
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -171,6 +172,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
+                .AsNoTracking()
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync(cancellationToken);
         }
@@ -196,7 +198,8 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .Where(e => e.ModelId.ToLower() == modelId.ToLower())
+                .AsNoTracking()
+                .Where(e => EF.Functions.Like(e.ModelId, modelId))
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -224,7 +227,8 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .Where(e => e.PromptId.ToLower() == promptId.ToLower())
+                .AsNoTracking()
+                .Where(e => EF.Functions.Like(e.PromptId, promptId))
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -252,6 +256,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
+                .AsNoTracking()
                 .Where(e => e.CreatedAt >= startDate && e.CreatedAt <= endDate)
                 .OrderByDescending(e => e.CreatedAt)
                 .Skip(skip)
@@ -302,7 +307,9 @@ public class SqliteEvaluationRepository : IEvaluationRepository
 
         try
         {
-            return await _context.Evaluations.CountAsync(cancellationToken);
+            return await _context.Evaluations
+                .AsNoTracking()
+                .CountAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -322,11 +329,12 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             var averageRating = await _context.Evaluations
-                .Where(e => e.ModelId.ToLower() == modelId.ToLower() && e.Rating.HasValue)
+                .AsNoTracking()
+                .Where(e => EF.Functions.Like(e.ModelId, modelId) && e.Rating.HasValue)
                 .Select(e => e.Rating.Value)
                 .AverageAsync(cancellationToken)
                 .ConfigureAwait(false);
-            
+
             return averageRating;
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Sequence contains no elements"))
@@ -353,7 +361,8 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
-                .CountAsync(e => e.ModelId.ToLower() == modelId.ToLower(), cancellationToken);
+                .AsNoTracking()
+                .CountAsync(e => EF.Functions.Like(e.ModelId, modelId), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -375,9 +384,10 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
+                .AsNoTracking()
                 .FirstOrDefaultAsync(e =>
-                    e.PromptId.ToLower() == promptId.ToLower() &&
-                    e.ModelId.ToLower() == modelId.ToLower(),
+                    EF.Functions.Like(e.PromptId, promptId) &&
+                    EF.Functions.Like(e.ModelId, modelId),
                     cancellationToken);
         }
         catch (Exception ex)
@@ -395,6 +405,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             return await _context.Evaluations
+                .AsNoTracking()
                 .Where(e => e.CreatedAt >= sinceDate)
                 .OrderByDescending(e => e.CreatedAt)
                 .ToListAsync(cancellationToken);
@@ -417,7 +428,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
         try
         {
             var evaluationsToDelete = await _context.Evaluations
-                .Where(e => e.ModelId.ToLower() == modelId.ToLower())
+                .Where(e => EF.Functions.Like(e.ModelId, modelId))
                 .ToListAsync(cancellationToken);
 
             if (!evaluationsToDelete.Any())
