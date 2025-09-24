@@ -8,15 +8,13 @@ namespace ModelComparisonStudio.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ModelsController : ControllerBase
+    public class ModelsController : BaseController
     {
         private readonly ApiConfiguration _apiConfiguration;
-        private readonly ILogger<ModelsController> _logger;
 
-        public ModelsController(IOptions<ApiConfiguration> apiConfiguration, ILogger<ModelsController> logger)
+        public ModelsController(IOptions<ApiConfiguration> apiConfiguration, ILogger<ModelsController> logger) : base(logger)
         {
             _apiConfiguration = apiConfiguration.Value;
-            _logger = logger;
         }
 
         /// <summary>
@@ -58,7 +56,7 @@ namespace ModelComparisonStudio.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving available models from configuration");
-                return StatusCode(500, new { error = "Internal server error while retrieving models" });
+                return StatusCode(500, CreateErrorResponse(ex));
             }
         }
 
@@ -106,7 +104,7 @@ namespace ModelComparisonStudio.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving models for provider {Provider}", provider);
-                return StatusCode(500, new { error = "Internal server error while retrieving models" });
+                return StatusCode(500, CreateErrorResponse(ex));
             }
         }
     }

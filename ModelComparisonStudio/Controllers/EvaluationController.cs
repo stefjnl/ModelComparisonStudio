@@ -9,17 +9,15 @@ namespace ModelComparisonStudio.Controllers;
 
 [ApiController]
 [Route("api/evaluations")]
-public class EvaluationController : ControllerBase
+public class EvaluationController : BaseController
 {
     private readonly EvaluationApplicationService _evaluationService;
-    private readonly ILogger<EvaluationController> _logger;
 
     public EvaluationController(
         EvaluationApplicationService evaluationService,
-        ILogger<EvaluationController> logger)
+        ILogger<EvaluationController> logger) : base(logger)
     {
         _evaluationService = evaluationService;
-        _logger = logger;
     }
 
     /// <summary>
@@ -56,14 +54,7 @@ public class EvaluationController : ControllerBase
                 _logger.LogWarning("ModelState invalid. Errors: {Errors}",
                     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage),
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse(ModelState));
             }
 
             var evaluation = await _evaluationService.CreateEvaluationAsync(dto, cancellationToken);
@@ -76,26 +67,12 @@ public class EvaluationController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when creating evaluation");
-            return BadRequest(new
-            {
-                type = "validation_error",
-                title = "Validation Error",
-                status = 400,
-                detail = ex.Message,
-                traceId = HttpContext.TraceIdentifier
-            });
+            return BadRequest(CreateValidationErrorResponse(ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error creating evaluation");
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while creating the evaluation",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -136,14 +113,7 @@ public class EvaluationController : ControllerBase
                 _logger.LogWarning("ModelState invalid. Errors: {Errors}",
                     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage),
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse(ModelState));
             }
 
             var evaluation = await _evaluationService.UpsertEvaluationAsync(dto, cancellationToken);
@@ -155,26 +125,12 @@ public class EvaluationController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when upserting evaluation");
-            return BadRequest(new
-            {
-                type = "validation_error",
-                title = "Validation Error",
-                status = 400,
-                detail = ex.Message,
-                traceId = HttpContext.TraceIdentifier
-            });
+            return BadRequest(CreateValidationErrorResponse(ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error upserting evaluation");
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while upserting the evaluation",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -199,14 +155,7 @@ public class EvaluationController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage),
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse(ModelState));
             }
 
             var evaluation = await _evaluationService.UpdateRatingAsync(evaluationId, dto, cancellationToken);
@@ -227,26 +176,12 @@ public class EvaluationController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when updating rating for evaluation {EvaluationId}", evaluationId);
-            return BadRequest(new
-            {
-                type = "validation_error",
-                title = "Validation Error",
-                status = 400,
-                detail = ex.Message,
-                traceId = HttpContext.TraceIdentifier
-            });
+            return BadRequest(CreateValidationErrorResponse(ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error updating rating for evaluation {EvaluationId}", evaluationId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while updating the rating",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -271,14 +206,7 @@ public class EvaluationController : ControllerBase
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage),
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse(ModelState));
             }
 
             var evaluation = await _evaluationService.UpdateCommentAsync(evaluationId, dto, cancellationToken);
@@ -299,26 +227,12 @@ public class EvaluationController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when updating comment for evaluation {EvaluationId}", evaluationId);
-            return BadRequest(new
-            {
-                type = "validation_error",
-                title = "Validation Error",
-                status = 400,
-                detail = ex.Message,
-                traceId = HttpContext.TraceIdentifier
-            });
+            return BadRequest(CreateValidationErrorResponse(ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error updating comment for evaluation {EvaluationId}", evaluationId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while updating the comment",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -356,14 +270,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error getting evaluation {EvaluationId}", evaluationId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while retrieving the evaluation",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -390,14 +297,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error getting all evaluations");
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while retrieving evaluations",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -458,14 +358,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error getting evaluation statistics for model {ModelId}", modelId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while retrieving evaluation statistics",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -487,14 +380,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error getting all evaluation statistics");
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while retrieving evaluation statistics",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -516,14 +402,7 @@ public class EvaluationController : ControllerBase
         {
             if (!new[] { "all", "week", "month" }.Contains(timeframe.ToLower()))
             {
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    detail = "Timeframe must be 'all', 'week', or 'month'",
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse("Timeframe must be 'all', 'week', or 'month'"));
             }
 
             var statistics = await _evaluationService.GetAllEvaluationStatisticsByTimeframeAsync(timeframe, cancellationToken);
@@ -532,14 +411,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error getting evaluation statistics for timeframe {Timeframe}", timeframe);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while retrieving evaluation statistics",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -578,14 +450,7 @@ public class EvaluationController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error deleting evaluation {EvaluationId}", evaluationId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while deleting the evaluation",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 
@@ -607,14 +472,7 @@ public class EvaluationController : ControllerBase
         {
             if (string.IsNullOrWhiteSpace(modelId))
             {
-                return BadRequest(new
-                {
-                    type = "validation_error",
-                    title = "Validation Error",
-                    status = 400,
-                    detail = "Model ID cannot be null or empty",
-                    traceId = HttpContext.TraceIdentifier
-                });
+                return BadRequest(CreateValidationErrorResponse("Model ID cannot be null or empty"));
             }
 
             var deletedCount = await _evaluationService.DeleteEvaluationsByModelIdAsync(modelId, cancellationToken);
@@ -631,26 +489,12 @@ public class EvaluationController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument when deleting evaluations for model {ModelId}", modelId);
-            return BadRequest(new
-            {
-                type = "validation_error",
-                title = "Validation Error",
-                status = 400,
-                detail = ex.Message,
-                traceId = HttpContext.TraceIdentifier
-            });
+            return BadRequest(CreateValidationErrorResponse(ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error deleting evaluations for model {ModelId}", modelId);
-            return StatusCode(500, new
-            {
-                type = "internal_error",
-                title = "Internal Server Error",
-                status = 500,
-                detail = "An unexpected error occurred while deleting evaluations for the model",
-                traceId = HttpContext.TraceIdentifier
-            });
+            return StatusCode(500, CreateErrorResponse(ex));
         }
     }
 

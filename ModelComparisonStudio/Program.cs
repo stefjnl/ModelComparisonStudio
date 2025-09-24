@@ -17,6 +17,7 @@ builder.Services.AddControllers(options =>
     options.ModelBindingMessageProvider.SetValueMustNotBeNullAccessor(
         _ => "The field is required.");
 })
+.AddApplicationPart(typeof(Program).Assembly) // Explicitly include the current assembly for controller discovery
 .AddJsonOptions(options =>
 {
     // Configure JSON options for better error handling
@@ -65,6 +66,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IEvaluationRepository, SqliteEvaluationRepository>();
 builder.Services.AddScoped<EvaluationApplicationService>();
 
+// Register prompt template services
+builder.Services.AddScoped<IPromptTemplateRepository, SqlitePromptTemplateRepository>();
+builder.Services.AddScoped<DatabaseInitializer>();
+builder.Services.AddScoped<PromptCategoryService>();
+builder.Services.AddScoped<PromptTemplateService>();
+
+builder.Services.AddScoped<TemplateStatisticsService>();
+
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -91,10 +101,16 @@ using (var scope = app.Services.CreateScope())
     dbLogger.LogInformation("Database path will be: {DbPath}", Path.Combine(contentRootPath, "evaluations.db"));
 
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var databaseInitializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+
     try
     {
-        dbContext.Database.EnsureCreated(); // Creates the database if it doesn't exist
+        await dbContext.Database.EnsureCreatedAsync(); // Creates the database if it doesn't exist
         dbLogger.LogInformation("Database initialized successfully");
+
+        // Initialize prompt template system with default categories
+        await databaseInitializer.InitializeDatabaseAsync();
+        dbLogger.LogInformation("Prompt template system initialized successfully");
     }
     catch (Exception ex)
     {
@@ -144,12 +160,13 @@ app.UseStaticFiles();
 // Serve default file (index.html) when no specific file is requested
 app.UseDefaultFiles();
 
+// Map API controllers FIRST - they should take precedence over fallback routes
 app.MapControllers();
 
 // Root endpoint to serve the frontend
 app.MapGet("/", () => Results.Redirect("/index.html"));
 
-// Fallback to index.html for SPA routing - serve the frontend for all routes
+// Fallback to index.html for SPA routing - this should be LAST
 app.MapFallbackToFile("index.html");
 
-app.Run();
+await app.RunAsync();

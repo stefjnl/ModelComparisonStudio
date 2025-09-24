@@ -1,6 +1,7 @@
 import { escapeHtml, formatResponseContent, generatePromptId, isValidModelFormat } from './modules/utils.js';
 import { saveModelsToStorage, loadModelsFromStorage } from './modules/storage.js';
 import { displayErrorMessage, displaySuccessMessage } from './modules/ui.js';
+import { templateManager } from './modules/templates.js';
 
 // Model Comparison Studio - Enhanced JavaScript with Model Loading and Evaluation System
 
@@ -165,11 +166,15 @@ const ModelComparisonApp = (() => {
         this.unsavedChanges = false;
         this.commentDebounceTimers = new Map();
 
+        // Initialize template system FIRST so event listeners work properly
+        this.templateManager = templateManager;
+        this.loadTemplateSystem();
+    
         this.initializeEventListeners();
-
+    
         // Use the organized API functions
         this.api = api;
-
+    
         // Ensure DOM is ready before loading models
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -179,9 +184,7 @@ const ModelComparisonApp = (() => {
         } else {
             // DOM is already ready
             console.log('DEBUG: DOM already ready, loading available models immediately');
-            setTimeout(() => {
-                this.loadAvailableModels();
-            }, 100); // Small delay for any remaining async operations
+            this.loadAvailableModels();
         }
 
         // Set up beforeunload handler for unsaved changes
@@ -214,6 +217,9 @@ const ModelComparisonApp = (() => {
 
         // Sidebar toggle functionality
         this.initializeSidebarToggle();
+
+        // Template system controls
+        this.setupTemplateControls();
 
         // Ranking system controls
         this.setupRankingControls();
@@ -1413,10 +1419,80 @@ const ModelComparisonApp = (() => {
         }
     }
 
+    // Template System Methods
+    async loadTemplateSystem() {
+        try {
+            await this.templateManager.initializeTemplateSystem();
+            console.log('Template system loaded successfully');
+        } catch (error) {
+            console.error('Failed to load template system:', error);
+        }
+    }
+
+    setupTemplateControls() {
+        // Template library show/hide buttons
+        const showBtn = document.getElementById('showTemplateLibraryBtn');
+        const hideBtn = document.getElementById('hideTemplateLibraryBtn');
+        
+        if (showBtn) {
+            showBtn.addEventListener('click', () => this.toggleTemplateLibrary());
+        }
+        
+        if (hideBtn) {
+            hideBtn.addEventListener('click', () => this.toggleTemplateLibrary());
+        }
+
+        // Template search
+        const searchInput = document.getElementById('templateSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.templateManager.handleSearch(e.target.value);
+            });
+        }
+
+        // Create template button
+        const createBtn = document.getElementById('createTemplateBtn');
+        if (createBtn) {
+            createBtn.addEventListener('click', () => this.showTemplateEditor());
+        }
+    }
+
+    toggleTemplateLibrary() {
+        const library = document.getElementById('templateLibrary');
+        const showBtn = document.getElementById('showTemplateLibraryBtn');
+        const hideBtn = document.getElementById('hideTemplateLibraryBtn');
+
+        if (library) {
+            const isHidden = library.classList.contains('hidden');
+
+            if (isHidden) {
+                // Show the library
+                library.classList.remove('hidden');
+                if (showBtn) showBtn.style.display = 'none';
+                if (hideBtn) hideBtn.style.display = 'block';
+
+                // Update the template manager's UI when showing
+                if (this.templateManager) {
+                    this.templateManager.renderTemplateLibrary();
+                }
+            } else {
+                // Hide the library
+                library.classList.add('hidden');
+                if (showBtn) showBtn.style.display = 'block';
+                if (hideBtn) hideBtn.style.display = 'none';
+            }
+        }
+    }
+
+    showTemplateEditor(templateId = null) {
+        this.templateManager.showTemplateEditor(templateId);
+    }
+
     // Ranking system methods
     showRankingDashboard() {
         // Hide other sections
         document.getElementById('resultsSection').classList.add('hidden');
+        document.getElementById('templateLibrary').classList.add('hidden');
 
         // Show ranking dashboard
         const rankingDashboard = document.getElementById('rankingDashboard');

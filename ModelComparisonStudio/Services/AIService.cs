@@ -267,10 +267,12 @@ namespace ModelComparisonStudio.Services
                             _logger.LogError("Error snippet: {ErrorSnippet}", errorSnippet);
                         }
                         _logger.LogError("=== End JSON Error ===");
+                        deserializedResponse = null; // Ensure it's null on error
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "General deserialization error: {ErrorMessage}", ex.Message);
+                        deserializedResponse = null; // Ensure it's null on error
                     }
 
                     // Detailed response analysis
@@ -332,7 +334,7 @@ namespace ModelComparisonStudio.Services
                         ModelId = modelId,
                         Response = firstChoice.Message?.Content ?? string.Empty,
                         ResponseTimeMs = apiResponseTime,
-                        TokenCount = deserializedResponse.Usage?.TotalTokens,
+                        TokenCount = deserializedResponse?.Usage?.TotalTokens,
                         Status = "success"
                     };
 
