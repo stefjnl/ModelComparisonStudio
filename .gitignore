@@ -260,6 +260,10 @@ ServiceFabricBackup/
 *.ldf
 *.ndf
 
+# SQLite files
+*.db-shm
+*.db-wal
+
 # Business Intelligence projects
 *.rdl
 *.rdlc

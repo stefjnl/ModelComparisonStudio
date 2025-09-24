@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ModelComparisonStudio.Models;
 using ModelComparisonStudio.Services;
+using ModelComparisonStudio.Configuration;
 using ModelComparisonStudio.Core.ValueObjects;
 using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
 
@@ -11,18 +13,22 @@ namespace ModelComparisonStudio.Controllers
     public class ComparisonController : BaseController
     {
         private readonly AIService _aiService;
+        private readonly ApiConfiguration _apiConfiguration;
 
         public ComparisonController(
             AIService aiService,
+            IOptions<ApiConfiguration> apiConfiguration,
             ILogger<ComparisonController> logger) : base(logger)
         {
             _aiService = aiService;
+            _apiConfiguration = apiConfiguration.Value;
         }
 
         /// <summary>
-        /// Executes sequential comparison across multiple AI models
+        /// Executes comparison across multiple AI models with parallel execution by default
         /// </summary>
         /// <param name="request">Comparison request with prompt and selected models</param>
+        /// <param name="executionMode">Execution mode: Parallel (default) or Sequential</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Comparison results from all models</returns>
         [HttpPost("execute")]
@@ -31,6 +37,7 @@ namespace ModelComparisonStudio.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ExecuteComparison(
             [FromBody] ComparisonRequest request,
+            [FromQuery] ExecutionMode executionMode = ExecutionMode.Parallel,
             CancellationToken cancellationToken = default)
         {
             try
@@ -81,14 +88,27 @@ namespace ModelComparisonStudio.Controllers
                 // Generate unique comparison ID
                 var comparisonId = Guid.NewGuid().ToString();
 
-                _logger.LogInformation("Starting comparison {ComparisonId} with {ModelCount} models",
-                    comparisonId, request.SelectedModels.Count);
+                _logger.LogInformation("Starting comparison {ComparisonId} with {ModelCount} models using {ExecutionMode} execution",
+                    comparisonId, request.SelectedModels.Count, executionMode.ToString());
 
-                // Execute sequential comparison
-                var modelResults = await _aiService.ExecuteSequentialComparison(
-                    request.Prompt,
-                    request.SelectedModels,
-                    cancellationToken);
+                // Validate execution mode
+                if (!Enum.IsDefined(typeof(ExecutionMode), executionMode))
+                {
+                    return BadRequest(new
+                    {
+                        error = $"Invalid execution mode. Use '{ExecutionMode.Parallel}' or '{ExecutionMode.Sequential}'"
+                    });
+                }
+
+                // Execute comparison based on mode
+                var modelResults = executionMode == ExecutionMode.Sequential
+                    ? await _aiService.ExecuteSequentialComparison(request.Prompt, request.SelectedModels, _apiConfiguration.Execution.DefaultTimeout, cancellationToken)
+                    : await _aiService.ExecuteParallelComparison(
+                        request.Prompt,
+                        request.SelectedModels,
+                        _apiConfiguration.Execution.MaxConcurrentRequests,
+                        _apiConfiguration.Execution.DefaultTimeout,
+                        cancellationToken);
 
                 // Map service results to response model
                 var response = new ComparisonResponse

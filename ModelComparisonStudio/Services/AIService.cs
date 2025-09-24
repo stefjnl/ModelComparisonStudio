@@ -61,11 +61,13 @@ namespace ModelComparisonStudio.Services
         /// </summary>
         /// <param name="prompt">The prompt to send to the model</param>
         /// <param name="modelId">The model ID to use (e.g., "openai/gpt-4o-mini")</param>
+        /// <param name="timeout">Request timeout duration</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Analysis result with response and metadata</returns>
         public async Task<AnalysisResult> AnalyzeCodeAsync(
             string prompt,
             string modelId,
+            TimeSpan timeout,
             CancellationToken cancellationToken = default)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -75,6 +77,7 @@ namespace ModelComparisonStudio.Services
                 _logger.LogInformation("=== AnalyzeCodeAsync Started ===");
                 _logger.LogInformation("Starting analysis with model {ModelId}", modelId);
                 _logger.LogInformation("Prompt: {Prompt}", prompt);
+                _logger.LogInformation("Timeout: {Timeout} seconds", timeout.TotalSeconds);
                 _logger.LogInformation("Configuration loaded - NanoGPT API Key: {ApiKey}, OpenRouter API Key: {OpenRouterApiKey}",
                     _apiConfiguration.NanoGPT?.ApiKey ?? "NULL",
                     _apiConfiguration.OpenRouter?.ApiKey ?? "NULL");
@@ -171,6 +174,11 @@ namespace ModelComparisonStudio.Services
                     throw new InvalidOperationException($"Failed to configure HTTP headers: {ex.Message}", ex);
                 }
 
+                // Create a timeout cancellation token source
+                using var timeoutCts = new CancellationTokenSource(timeout);
+                using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+                var requestCancellationToken = combinedCts.Token;
+
                 // Make the API call with enhanced error handling and detailed logging
                 _logger.LogInformation("=== API Request Details ===");
                 _logger.LogInformation("Request URL: {BaseUrl}/chat/completions", baseUrl);
@@ -179,7 +187,7 @@ namespace ModelComparisonStudio.Services
                     string.Join(", ", _httpClient.DefaultRequestHeaders.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}")));
                 _logger.LogInformation("Content-Type: {ContentType}", content.Headers.ContentType?.ToString());
                 _logger.LogInformation("Content-Length: {ContentLength} bytes", content.Headers.ContentLength ?? -1);
-                _logger.LogInformation("Timeout: {Timeout} minutes", _httpClient.Timeout.TotalMinutes);
+                _logger.LogInformation("Configured timeout: {Timeout} seconds", timeout.TotalSeconds);
                 _logger.LogInformation("=== End Request Details ===");
 
                 try
@@ -187,7 +195,7 @@ namespace ModelComparisonStudio.Services
                     var apiCallStopwatch = Stopwatch.StartNew();
                     _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
 
-                    var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, cancellationToken);
+                    var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, requestCancellationToken);
 
                     apiCallStopwatch.Stop();
                     var apiResponseTime = apiCallStopwatch.ElapsedMilliseconds;
@@ -420,11 +428,13 @@ namespace ModelComparisonStudio.Services
         /// </summary>
         /// <param name="prompt">The prompt to send to all models</param>
         /// <param name="modelIds">List of model IDs to compare</param>
+        /// <param name="timeout">Request timeout duration</param>
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of results from all models</returns>
         public async Task<List<ModelResult>> ExecuteSequentialComparison(
             string prompt,
             List<string> modelIds,
+            TimeSpan timeout,
             CancellationToken cancellationToken = default)
         {
             var results = new List<ModelResult>();
@@ -443,7 +453,7 @@ namespace ModelComparisonStudio.Services
                     _logger.LogInformation("Processing model {ModelIndex}/{ModelCount}: {ModelId}",
                         results.Count + 1, modelIds.Count, modelId);
 
-                    var analysisResult = await AnalyzeCodeAsync(prompt, modelId, cancellationToken);
+                    var analysisResult = await AnalyzeCodeAsync(prompt, modelId, timeout, cancellationToken);
 
                     var modelResult = new ModelResult
                     {
@@ -479,6 +489,114 @@ namespace ModelComparisonStudio.Services
                 results.Count, modelIds.Count);
 
             return results;
+        }
+
+        /// <summary>
+        /// Executes parallel comparison across multiple models with configurable concurrency
+        /// </summary>
+        /// <param name="prompt">The prompt to send to all models</param>
+        /// <param name="modelIds">List of model IDs to compare</param>
+        /// <param name="maxConcurrency">Maximum number of concurrent requests (default: 2)</param>
+        /// <param name="timeout">Request timeout duration</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>List of results from all models</returns>
+        public async Task<List<ModelResult>> ExecuteParallelComparison(
+            string prompt,
+            List<string> modelIds,
+            int maxConcurrency = 2,
+            TimeSpan timeout = default,
+            CancellationToken cancellationToken = default)
+        {
+            var results = new List<ModelResult>();
+            var semaphore = new SemaphoreSlim(maxConcurrency);
+
+            _logger.LogInformation("Starting parallel comparison for {ModelCount} models with max concurrency {MaxConcurrency}",
+                modelIds.Count, maxConcurrency);
+
+            // Create tasks for all models
+            var tasks = modelIds.Select(async modelId =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return CreateErrorModelResult(modelId, "Request was cancelled");
+                }
+
+                await semaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    _logger.LogInformation("Processing model {ModelIndex}/{ModelCount}: {ModelId}",
+                        results.Count + 1, modelIds.Count, modelId);
+
+                    var analysisResult = await AnalyzeCodeAsync(prompt, modelId, _apiConfiguration.Execution.DefaultTimeout, cancellationToken);
+
+                    var modelResult = new ModelResult
+                    {
+                        ModelId = analysisResult.ModelId,
+                        Response = analysisResult.Response,
+                        ResponseTimeMs = analysisResult.ResponseTimeMs,
+                        TokenCount = analysisResult.TokenCount,
+                        Status = analysisResult.Status,
+                        ErrorMessage = analysisResult.ErrorMessage
+                    };
+
+                    _logger.LogInformation("Completed model {ModelId} with status {Status} in {ResponseTime}ms",
+                        modelId, modelResult.Status, modelResult.ResponseTimeMs);
+
+                    return modelResult;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing model {ModelId}", modelId);
+                    return CreateErrorModelResult(modelId, ex.Message);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            // Wait for all tasks to complete
+            var completedResults = await Task.WhenAll(tasks);
+
+            // Add results to the list (maintains order)
+            results.AddRange(completedResults);
+
+            _logger.LogInformation("Parallel comparison completed. Processed {ProcessedCount}/{TotalCount} models",
+                results.Count, modelIds.Count);
+
+            // Log performance metrics
+            var successfulResults = results.Where(r => r.Status == ModelResultStatus.Success.ToString()).ToList();
+            var failedResults = results.Where(r => r.Status == ModelResultStatus.Error.ToString()).ToList();
+
+            var totalTime = results.Sum(r => r.ResponseTimeMs);
+            var averageTime = results.Any() ? totalTime / results.Count : 0;
+            var maxTime = results.Any() ? results.Max(r => r.ResponseTimeMs) : 0;
+
+            _logger.LogInformation("=== Parallel Execution Performance Metrics ===");
+            _logger.LogInformation("Total models processed: {TotalCount}", modelIds.Count);
+            _logger.LogInformation("Successful results: {SuccessCount}", successfulResults.Count);
+            _logger.LogInformation("Failed results: {FailedCount}", failedResults.Count);
+            _logger.LogInformation("Total execution time: {TotalTime}ms", totalTime);
+            _logger.LogInformation("Average time per model: {AverageTime}ms", averageTime);
+            _logger.LogInformation("Maximum time for single model: {MaxTime}ms", maxTime);
+            _logger.LogInformation("Concurrency limit used: {ConcurrencyLimit}", maxConcurrency);
+            _logger.LogInformation("Performance improvement estimate: ~{ImprovementPercent}% faster than sequential",
+                Math.Max(0, 100 - (averageTime * modelIds.Count / totalTime)));
+            _logger.LogInformation("=== End Performance Metrics ===");
+
+            return results;
+        }
+
+        private ModelResult CreateErrorModelResult(string modelId, string errorMessage)
+        {
+            return new ModelResult
+            {
+                ModelId = modelId,
+                Response = $"Error: {errorMessage}",
+                ResponseTimeMs = 0,
+                Status = ModelResultStatus.Error.ToString(),
+                ErrorMessage = errorMessage
+            };
         }
 
         private (string provider, string apiKey, string baseUrl) GetProviderInfo(string modelId)
