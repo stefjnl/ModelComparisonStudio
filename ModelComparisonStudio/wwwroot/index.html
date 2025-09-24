@@ -82,15 +82,6 @@
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8" id="mainGrid">
 
-            <!-- Sidebar Toggle Button (Mobile) -->
-            <button id="sidebarToggle"
-                class="lg:hidden fixed top-24 left-4 z-50 bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-3 shadow-modern-lg hover:bg-slate-700/90 transition-all duration-300">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
-                    </path>
-                </svg>
-            </button>
-
             <!-- Left Sidebar - Model Selection -->
             <aside id="sidebar" class="lg:col-span-3 space-y-6 sidebar-expanded">
                 <div
@@ -198,86 +189,116 @@
             </aside>
 
             <!-- Main Content Area -->
-            <div id="mainContent" class="lg:col-span-9 space-y-6 main-content-expanded">
-
-                <!-- Template Library Section (Reduced Height) -->
-                <div class="space-y-6">
-                    <div
-                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-semibold text-white flex items-center">
-                                <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                                Prompt Templates
-                            </h2>
-                            <div class="flex gap-2">
-                                <button id="showTemplateLibraryBtn"
-                                    class="hidden bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                    <span class="flex items-center">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                                        </svg>
-                                        Template Library
-                                    </span>
-                                </button>
-                                <button id="hideTemplateLibraryBtn"
-                                    class="bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                    Hide
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Template Library with compact layout -->
-                        <div id="templateLibrary" class="space-y-4">
-                            <div class="template-controls flex flex-wrap gap-3 mb-4">
-                                <div class="flex-1 min-w-[200px]">
-                                    <input type="text" id="templateSearch" placeholder="Search templates..."
-                                           class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                                </div>
-                                <div class="flex gap-2">
-                                    <button id="createTemplateBtn"
-                                        class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                        Create New
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Category Filters -->
-                            <div id="templateCategoryFilters" class="category-filters">
-                                <!-- Category filters will be populated dynamically -->
-                            </div>
-
-                            <!-- Template Library Content with reduced max height -->
-                            <div id="templateLibraryContent" class="template-library-content max-h-60 overflow-y-auto">
-                                <!-- Templates will be populated dynamically -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Prompt Input Section (Moved to be more prominent) -->
+            <div id="mainContent" class="lg:col-span-5 space-y-6 main-content-expanded">
+                
+                <!-- Prompt Input Section -->
                     <div id="promptSection"
-                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl test-prompt-sticky">
-                        <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
-                            <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
-                            Test Prompt
-                        </h2>
+                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                        <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
+                        Test Prompt
+                    </h2>
 
-                        <textarea id="promptInput"
-                            placeholder="Enter your test prompt here... Describe what you want to test or ask the models..."
-                            class="w-full h-32 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"></textarea>
+                    <textarea id="promptInput"
+                        placeholder="Enter your test prompt here... Describe what you want to test or ask the models..."
+                        class="w-full h-48 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"></textarea>
 
-                        <button id="runComparisonBtn" disabled
-                            class="mt-4 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                            <span class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                Run Comparison
-                            </span>
-                        </button>
+                    <button id="runComparisonBtn" disabled
+                        class="mt-4 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <span class="flex items-center justify-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Run Comparison
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Comparison Results -->
+                <div id="resultsSection" class="hidden">
+                    <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                        Comparison Results
+                    </h2>
+
+                    <!-- Vertical Stack Layout for Model Comparisons -->
+                    <div id="comparisonResults" class="space-y-8">
+                        <!-- Model panels will be dynamically inserted here -->
                     </div>
                 </div>
+
+                <!-- Ranking Dashboard -->
+                <div id="rankingDashboard" class="hidden">
+                    <div
+                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                        <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></span>
+                            Model Rankings
+                        </h2>
+
+                        <!-- Ranking filters and controls -->
+                        <div class="flex flex-wrap gap-4 mb-6">
+                            <select id="rankingTimeFilter"
+                                class="bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white">
+                                <option value="all">All Time</option>
+                                <option value="week">Last Week</option>
+                                <option value="month">Last Month</option>
+                            </select>
+                            <select id="rankingSortBy"
+                                class="bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white">
+                                <option value="rating">Average Rating</option>
+                                <option value="responses">Total Responses</option>
+                                <option value="speed">Average Speed</option>
+                            </select>
+                        </div>
+
+                        <!-- Ranking leaderboard -->
+                        <div id="rankingLeaderboard" class="space-y-4">
+                            <div class="text-slate-400 text-center py-8">Loading ranking data...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Prompt Templates -->
+            <aside id="templateSidebar" class="lg:col-span-4 space-y-6 template-sidebar-expanded">
+                <div
+                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                        Prompt Templates
+                    </h2>
+
+                    <!-- Template Library Controls -->
+                    <div id="templateLibrary" class="space-y-4">
+                        <div class="template-controls flex flex-wrap gap-3 mb-4">
+                            <div class="flex-1 min-w-[200px]">
+                                <input type="text" id="templateSearch" placeholder="Search templates..."
+                                       class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="createTemplateBtn"
+                                    class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                    Create New
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Category Filters -->
+                        <div id="templateCategoryFilters" class="category-filters">
+                            <!-- Category filters will be populated dynamically -->
+                        </div>
+
+                        <!-- Template Library Content -->
+                        <div id="templateLibraryContent" class="template-library-content max-h-96 overflow-y-auto">
+                            <!-- Templates will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </main>
 
                 <!-- Comparison Results -->
                 <div id="resultsSection" class="hidden">

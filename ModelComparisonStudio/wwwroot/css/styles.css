@@ -1971,25 +1971,49 @@ body {
   border-top: 1px solid rgba(71, 85, 105, 0.3); /* border-slate-600/30 */
 }
 
-/* Category filter buttons */
+/* Category filter buttons - minimal styling */
 .category-filter-btn {
-  padding: 0.5rem 1rem; /* py-2 px-4 */
-  border-radius: 0.75rem; /* rounded-xl */
-  background: rgba(30, 41, 59, 0.5); /* bg-slate-800/50 */
-  border: 1px solid rgba(71, 85, 105, 0.3); /* border-slate-600/50 */
+  padding: 0.25rem 0.75rem; /* Reduced padding for minimal look */
+  border-radius: 0.5rem; /* Slightly smaller border radius */
+  background: transparent; /* Transparent background */
+  border: 1px solid transparent; /* Initially transparent border */
+  color: #94a3b8; /* slate-400 for subtlety */
+  font-size: 0.875rem; /* text-sm */
   transition: all 0.3s ease;
   cursor: pointer;
-  margin-right: 0.5rem; /* mr-2 */
-  margin-bottom: 0.5rem; /* mb-2 */
+  margin-right: 0.25rem; /* Reduced margin */
+  margin-bottom: 0.25rem; /* Reduced margin */
+  font-weight: 400; /* Normal font weight */
 }
 
 .category-filter-btn:hover {
-  background: rgba(55, 65, 81, 0.5); /* hover:bg-slate-700/50 */
+  background: rgba(71, 85, 105, 0.3); /* Subtle hover effect */
+  color: #cbd5e1; /* Lighter color on hover */
+  border-color: rgba(148, 163, 184, 0.4); /* Subtle border on hover */
 }
 
 .category-filter-btn.active {
-  background: linear-gradient(to right, #8b5cf6, #ec4899); /* purple-500 to pink-500 */
-  color: white;
+  background: rgba(139, 92, 246, 0.2); /* Purple background with low opacity */
+  color: #c4b5fd; /* light purple text */
+  border: 1px solid rgba(139, 92, 246, 0.5); /* Purple border */
+  font-weight: 500; /* Slightly more weight when active */
+}
+
+/* Category filters container - minimal styling */
+.category-filters {
+  padding: 0.25rem 0; /* Minimal padding */
+  margin-bottom: 0.5rem; /* Reduced margin */
+  border: none; /* Remove any border */
+}
+
+.category-filters h4 {
+  display: none; /* Hide the heading for minimal look */
+}
+
+.filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem; /* Reduced gap between buttons */
 }
 
 /* Search input styling */
@@ -2027,4 +2051,98 @@ body {
 .rotate-180 {
   transform: rotate(180deg);
   transition: transform 0.2s ease;
+}
+
+/* Template sidebar styles */
+.template-sidebar-expanded {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.template-sidebar-collapsed {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 40;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Main content adjustments for three columns */
+.main-content-three-columns {
+  grid-column: span 5 / span 5; /* Reduced from 6 to 5 to make template sidebar wider */
+}
+
+.main-content-full-width-left-sidebar {
+  grid-column: span 9 / span 9;
+}
+
+.main-content-full-width-two-sidebars {
+  grid-column: span 12 / span 12;
+}
+
+.main-content-full-width-right-sidebar {
+  grid-column: span 9 / span 9;
+}
+
+/* Make template sidebar wider by default (4 columns instead of 3) */
+.template-sidebar-expanded {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* For the grid layout - make template sidebar 4 columns instead of 3 */
+@media (min-width: 1024px) {
+  #templateSidebar.lg\:col-span-3 {
+    grid-column: span 4 / span 4; /* Increase from 3 to 4 columns */
+  }
+  
+  #sidebar.lg\:col-span-3 {
+    grid-column: span 3 / span 3; /* Keep left sidebar at 3 columns */
+  }
+  
+  #mainContent.lg\:col-span-6 {
+    grid-column: span 5 / span 5; /* Adjust main content to 5 columns */
+  }
+}
+
+/* Mobile template sidebar overlay */
+@media (max-width: 1023px) {
+  .template-sidebar-expanded {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100vh;
+    z-index: 50;
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+    overflow-y: auto;
+    padding-top: 5rem;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .template-sidebar-collapsed {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .template-sidebar-expanded::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: -1;
+  }
 }

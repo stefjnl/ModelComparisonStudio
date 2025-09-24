@@ -221,6 +221,7 @@ const ModelComparisonApp = (() => {
 
         // Sidebar toggle functionality
         this.initializeSidebarToggle();
+        this.initializeTemplateSidebarToggle();
 
         // Template system controls
         this.setupTemplateControls();
@@ -279,6 +280,52 @@ const ModelComparisonApp = (() => {
         });
     }
 
+    // Initialize template sidebar toggle functionality
+    initializeTemplateSidebarToggle() {
+        const templateSidebar = document.getElementById('templateSidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        // Load saved state from localStorage
+        const isTemplateCollapsed = localStorage.getItem('templateSidebarCollapsed') === 'true';
+
+        if (isTemplateCollapsed) {
+            this.collapseTemplateSidebar();
+        }
+
+        // Create a toggle button for the template sidebar
+        const templateToggle = document.createElement('button');
+        templateToggle.id = 'templateSidebarToggle';
+        templateToggle.className = 'hidden lg:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-xl border border-slate-700/30 rounded-xl px-4 py-2 transition-all duration-300';
+        templateToggle.innerHTML = `
+            <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <span class="text-sm text-slate-300 font-medium">Templates</span>
+        `;
+
+        // Add the button to the header or another appropriate location
+        const header = document.querySelector('header');
+        if (header) {
+            header.querySelector('div').appendChild(templateToggle);
+        }
+
+        // Add event listener to the toggle button
+        templateToggle.addEventListener('click', () => {
+            this.toggleTemplateSidebar();
+        });
+
+        // Handle window resize for template sidebar
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1023) {
+                // Desktop view - ensure proper grid layout
+                templateSidebar.classList.remove('template-sidebar-collapsed');
+                templateSidebar.classList.add('template-sidebar-expanded');
+                mainContent.classList.remove('main-content-full-width-two-sidebars');
+                mainContent.classList.add('main-content-expanded');
+            }
+        });
+    }
+
     // Toggle sidebar visibility
     toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
@@ -291,16 +338,71 @@ const ModelComparisonApp = (() => {
         }
     }
 
+    // Toggle template sidebar visibility
+    toggleTemplateSidebar() {
+        const templateSidebar = document.getElementById('templateSidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        if (templateSidebar.classList.contains('template-sidebar-expanded')) {
+            this.collapseTemplateSidebar();
+        } else {
+            this.expandTemplateSidebar();
+        }
+    }
+
+    // Collapse template sidebar
+    collapseTemplateSidebar() {
+        const templateSidebar = document.getElementById('templateSidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        templateSidebar.classList.remove('template-sidebar-expanded');
+        templateSidebar.classList.add('template-sidebar-collapsed');
+
+        mainContent.classList.remove('main-content-expanded');
+        mainContent.classList.add('main-content-full-width-left-sidebar');
+
+        // Save state
+        localStorage.setItem('templateSidebarCollapsed', 'true');
+
+        // Update toggle button text
+        this.updateTemplateToggleButtonText('Show');
+    }
+
+    // Expand template sidebar
+    expandTemplateSidebar() {
+        const templateSidebar = document.getElementById('templateSidebar');
+        const mainContent = document.getElementById('mainContent');
+
+        templateSidebar.classList.remove('template-sidebar-collapsed');
+        templateSidebar.classList.add('template-sidebar-expanded');
+
+        mainContent.classList.remove('main-content-full-width-left-sidebar');
+        mainContent.classList.add('main-content-expanded');
+
+        // Save state
+        localStorage.setItem('templateSidebarCollapsed', 'false');
+
+        // Update toggle button text
+        this.updateTemplateToggleButtonText('Hide');
+    }
+
     // Collapse sidebar
     collapseSidebar() {
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
+        const templateSidebar = document.getElementById('templateSidebar');
 
         sidebar.classList.remove('sidebar-expanded');
         sidebar.classList.add('sidebar-collapsed');
 
-        mainContent.classList.remove('main-content-expanded');
-        mainContent.classList.add('main-content-full-width');
+        // Check if template sidebar is also collapsed
+        if (templateSidebar && templateSidebar.classList.contains('template-sidebar-collapsed')) {
+            mainContent.classList.remove('main-content-expanded', 'main-content-three-columns', 'main-content-full-width-left-sidebar');
+            mainContent.classList.add('main-content-full-width-two-sidebars');
+        } else {
+            mainContent.classList.remove('main-content-expanded', 'main-content-three-columns', 'main-content-full-width-two-sidebars');
+            mainContent.classList.add('main-content-full-width-left-sidebar');
+        }
 
         // Save state
         localStorage.setItem('sidebarCollapsed', 'true');
@@ -313,12 +415,19 @@ const ModelComparisonApp = (() => {
     expandSidebar() {
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
+        const templateSidebar = document.getElementById('templateSidebar');
 
         sidebar.classList.remove('sidebar-collapsed');
         sidebar.classList.add('sidebar-expanded');
 
-        mainContent.classList.remove('main-content-full-width');
-        mainContent.classList.add('main-content-expanded');
+        // Check if template sidebar is also expanded
+        if (templateSidebar && templateSidebar.classList.contains('template-sidebar-expanded')) {
+            mainContent.classList.remove('main-content-full-width-left-sidebar', 'main-content-full-width', 'main-content-full-width-two-sidebars');
+            mainContent.classList.add('main-content-three-columns');
+        } else {
+            mainContent.classList.remove('main-content-full-width', 'main-content-three-columns', 'main-content-full-width-two-sidebars');
+            mainContent.classList.add('main-content-expanded');
+        }
 
         // Save state
         localStorage.setItem('sidebarCollapsed', 'false');
@@ -334,6 +443,17 @@ const ModelComparisonApp = (() => {
             const span = desktopToggle.querySelector('span');
             if (span) {
                 span.textContent = `Toggle Sidebar (${text})`;
+            }
+        }
+    }
+
+    // Update template toggle button text
+    updateTemplateToggleButtonText(text) {
+        const templateToggle = document.getElementById('templateSidebarToggle');
+        if (templateToggle) {
+            const span = templateToggle.querySelector('span');
+            if (span) {
+                span.textContent = `Templates (${text})`;
             }
         }
     }
