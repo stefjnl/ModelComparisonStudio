@@ -4,6 +4,7 @@ using ModelComparisonStudio.Configuration;
 using ModelComparisonStudio.Core.Interfaces;
 using ModelComparisonStudio.Infrastructure;
 using ModelComparisonStudio.Infrastructure.Repositories;
+using ModelComparisonStudio.Middlewares;
 using ModelComparisonStudio.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -87,6 +88,9 @@ builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 var app = builder.Build();
+
+// Register global exception middleware as early as possible
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Test logging configuration
 var appLogger = app.Services.GetRequiredService<ILogger<Program>>();
