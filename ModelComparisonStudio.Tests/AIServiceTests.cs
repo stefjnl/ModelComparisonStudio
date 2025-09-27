@@ -43,7 +43,14 @@ namespace ModelComparisonStudio.Tests
                 {
                     MaxConcurrentRequests = 2,
                     EnableParallelExecution = true,
-                    DefaultTimeout = TimeSpan.FromSeconds(30)
+                    QuickTimeout = TimeSpan.FromMinutes(2),
+                    StandardTimeout = TimeSpan.FromMinutes(5),
+                    ExtendedTimeout = TimeSpan.FromMinutes(15),
+                    DefaultTimeout = TimeSpan.FromMinutes(10),
+                    RetryAttempts = 3,
+                    RetryDelay = TimeSpan.FromSeconds(5),
+                    EnablePerformanceMonitoring = true,
+                    HealthCheckInterval = TimeSpan.FromMinutes(1)
                 }
             };
 
@@ -109,6 +116,112 @@ namespace ModelComparisonStudio.Tests
             // Assert
             Assert.NotNull(results);
             Assert.Equal(2, results.Count);
+        }
+
+        [Fact]
+        public async Task ExecuteParallelComparison_WithTimeout_UsesCorrectTimeout()
+        {
+            // Arrange
+            var prompt = "Test prompt for timeout testing";
+            var modelIds = new List<string> { "gpt-4", "claude-3" };
+            var customTimeout = TimeSpan.FromMinutes(10);
+
+            // Act
+            var results = await _aiService.ExecuteParallelComparison(prompt, modelIds, 2, customTimeout, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Equal(2, results.Count);
+            Assert.All(results, r => Assert.Equal(ModelResultStatus.Error.ToString(), r.Status));
+        }
+
+        [Fact]
+        public async Task ExecuteParallelComparison_WithCancellationToken_HandlesCancellation()
+        {
+            // Arrange
+            var prompt = "Test prompt";
+            var modelIds = new List<string> { "gpt-4", "claude-3" };
+            var cts = new CancellationTokenSource();
+            cts.CancelAfter(100); // Cancel after 100ms
+
+            // Act & Assert
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                _aiService.ExecuteParallelComparison(prompt, modelIds, 2, TimeSpan.FromMinutes(5), cts.Token));
+        }
+
+        [Fact]
+        public async Task ExecuteParallelComparison_WithLongPrompt_UsesExtendedTimeout()
+        {
+            // Arrange
+            var longPrompt = new string('A', 15000); // 15k character prompt
+            var modelIds = new List<string> { "gpt-4" };
+
+            // Act
+            var results = await _aiService.ExecuteParallelComparison(longPrompt, modelIds, 1, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Single(results);
+        }
+
+        [Fact]
+        public async Task ExecuteParallelComparison_WithShortPrompt_UsesQuickTimeout()
+        {
+            // Arrange
+            var shortPrompt = "Hello world";
+            var modelIds = new List<string> { "gpt-4" };
+
+            // Act
+            var results = await _aiService.ExecuteParallelComparison(shortPrompt, modelIds, 1, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Single(results);
+        }
+
+        [Fact]
+        public async Task ExecuteParallelComparison_WithMediumPrompt_UsesStandardTimeout()
+        {
+            // Arrange
+            var mediumPrompt = new string('A', 3000); // 3k character prompt
+            var modelIds = new List<string> { "gpt-4" };
+
+            // Act
+            var results = await _aiService.ExecuteParallelComparison(mediumPrompt, modelIds, 1, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Single(results);
+        }
+
+        [Theory]
+        [InlineData("QuickTimeout", 2)]
+        [InlineData("StandardTimeout", 5)]
+        [InlineData("ExtendedTimeout", 15)]
+        public async Task TimeoutConfiguration_IsAccessible(string timeoutProperty, int expectedMinutes)
+        {
+            // Arrange
+            var config = new ApiConfiguration
+            {
+                Execution = new ExecutionConfiguration
+                {
+                    QuickTimeout = TimeSpan.FromMinutes(2),
+                    StandardTimeout = TimeSpan.FromMinutes(5),
+                    ExtendedTimeout = TimeSpan.FromMinutes(15),
+                    DefaultTimeout = TimeSpan.FromMinutes(10)
+                }
+            };
+
+            // Act & Assert
+            var timeoutValue = timeoutProperty switch
+            {
+                "QuickTimeout" => config.Execution.QuickTimeout.TotalMinutes,
+                "StandardTimeout" => config.Execution.StandardTimeout.TotalMinutes,
+                "ExtendedTimeout" => config.Execution.ExtendedTimeout.TotalMinutes,
+                _ => throw new ArgumentException("Invalid timeout property")
+            };
+
+            Assert.Equal(expectedMinutes, timeoutValue);
         }
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using ModelComparisonStudio.Configuration;
 using ModelComparisonStudio.Core.Entities;
 using ModelComparisonStudio.Core.ValueObjects;
+using ModelComparisonStudio.Infrastructure.Services;
 using static ModelComparisonStudio.Core.ValueObjects.AIProviderNames;
 using static ModelComparisonStudio.Core.ValueObjects.AIProviderUrls;
 using static ModelComparisonStudio.Core.ValueObjects.MimeTypes;
@@ -20,15 +21,18 @@ namespace ModelComparisonStudio.Services
         private readonly ApiConfiguration _apiConfiguration;
         private readonly HttpClient _httpClient;
         private readonly ILogger<AIService> _logger;
+        private readonly QueryPerformanceMonitor _performanceMonitor;
 
         public AIService(
             IOptions<ApiConfiguration> apiConfiguration,
             HttpClient httpClient,
-            ILogger<AIService> logger)
+            ILogger<AIService> logger,
+            QueryPerformanceMonitor performanceMonitor)
         {
             _apiConfiguration = apiConfiguration.Value;
             _httpClient = httpClient;
             _logger = logger;
+            _performanceMonitor = performanceMonitor;
 
             // HttpClient is now configured in Program.cs with 5-minute timeout
             // Log the configuration for verification
@@ -71,6 +75,7 @@ namespace ModelComparisonStudio.Services
             CancellationToken cancellationToken = default)
         {
             var stopwatch = Stopwatch.StartNew();
+            var performanceTracker = _performanceMonitor.TrackQuery($"AI-{modelId}");
 
             try
             {
@@ -195,7 +200,11 @@ namespace ModelComparisonStudio.Services
                     var apiCallStopwatch = Stopwatch.StartNew();
                     _logger.LogInformation("Making API call to {BaseUrl}/chat/completions for model {ModelId}", baseUrl, modelId);
 
-                    var response = await _httpClient.PostAsync($"{baseUrl}/chat/completions", content, requestCancellationToken);
+                    // Use retry mechanism for robust error handling
+                    var response = await ExecuteWithRetryAsync(
+                        () => _httpClient.PostAsync($"{baseUrl}/chat/completions", content, requestCancellationToken),
+                        modelId,
+                        requestCancellationToken);
 
                     apiCallStopwatch.Stop();
                     var apiResponseTime = apiCallStopwatch.ElapsedMilliseconds;
@@ -419,7 +428,21 @@ namespace ModelComparisonStudio.Services
             }
             finally
             {
+                stopwatch.Stop();
+                var totalTime = stopwatch.ElapsedMilliseconds;
+
+                // Record performance metrics
+                _performanceMonitor.RecordQueryExecution($"AI-{modelId}", totalTime);
+
+                // Log performance summary for long-running operations
+                if (totalTime > 30000) // 30 seconds
+                {
+                    _logger.LogWarning("Long-running operation detected: Model {ModelId} took {TotalTime}ms",
+                        modelId, totalTime);
+                }
+
                 _logger.LogInformation("=== AnalyzeCodeAsync Completed ===");
+                _logger.LogInformation("Performance: Model {ModelId} completed in {TotalTime}ms", modelId, totalTime);
             }
         }
 
@@ -527,7 +550,7 @@ namespace ModelComparisonStudio.Services
                     _logger.LogInformation("Processing model {ModelIndex}/{ModelCount}: {ModelId}",
                         results.Count + 1, modelIds.Count, modelId);
 
-                    var analysisResult = await AnalyzeCodeAsync(prompt, modelId, _apiConfiguration.Execution.DefaultTimeout, cancellationToken);
+                    var analysisResult = await AnalyzeCodeAsync(prompt, modelId, timeout, cancellationToken);
 
                     var modelResult = new ModelResult
                     {
@@ -585,6 +608,74 @@ namespace ModelComparisonStudio.Services
             _logger.LogInformation("=== End Performance Metrics ===");
 
             return results;
+        }
+
+        /// <summary>
+        /// Executes an HTTP request with retry logic and exponential backoff
+        /// </summary>
+        /// <param name="requestFunc">Function that performs the HTTP request</param>
+        /// <param name="modelId">Model ID for logging</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>HTTP response message</returns>
+        private async Task<HttpResponseMessage> ExecuteWithRetryAsync(
+            Func<Task<HttpResponseMessage>> requestFunc,
+            string modelId,
+            CancellationToken cancellationToken)
+        {
+            var retryAttempts = _apiConfiguration.Execution.RetryAttempts;
+            var retryDelay = _apiConfiguration.Execution.RetryDelay;
+
+            for (int attempt = 1; attempt <= retryAttempts + 1; attempt++)
+            {
+                try
+                {
+                    if (attempt > 1)
+                    {
+                        _logger.LogInformation("Retry attempt {Attempt}/{MaxAttempts} for model {ModelId}",
+                            attempt - 1, retryAttempts, modelId);
+                    }
+
+                    var response = await requestFunc();
+
+                    // If we get a successful response or a client error (4xx), don't retry
+                    if (response.IsSuccessStatusCode || (int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+                    {
+                        return response;
+                    }
+
+                    // For server errors (5xx), retry if we have attempts left
+                    if (attempt <= retryAttempts)
+                    {
+                        var delay = retryDelay * attempt; // Exponential backoff
+                        _logger.LogWarning("Server error {StatusCode} for model {ModelId}, retrying in {DelayMs}ms (attempt {Attempt}/{MaxAttempts})",
+                            (int)response.StatusCode, modelId, delay.TotalMilliseconds, attempt, retryAttempts);
+
+                        await Task.Delay(delay, cancellationToken);
+                        continue;
+                    }
+
+                    return response; // Return the last failed response
+                }
+                catch (HttpRequestException ex) when (attempt <= retryAttempts)
+                {
+                    var delay = retryDelay * attempt; // Exponential backoff
+                    _logger.LogWarning(ex, "HTTP request failed for model {ModelId}, retrying in {DelayMs}ms (attempt {Attempt}/{MaxAttempts})",
+                        modelId, delay.TotalMilliseconds, attempt, retryAttempts);
+
+                    await Task.Delay(delay, cancellationToken);
+                }
+                catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException && attempt <= retryAttempts)
+                {
+                    var delay = retryDelay * attempt; // Exponential backoff
+                    _logger.LogWarning(ex, "Request timeout for model {ModelId}, retrying in {DelayMs}ms (attempt {Attempt}/{MaxAttempts})",
+                        modelId, delay.TotalMilliseconds, attempt, retryAttempts);
+
+                    await Task.Delay(delay, cancellationToken);
+                }
+            }
+
+            // This should never be reached, but just in case
+            throw new InvalidOperationException($"All retry attempts failed for model {modelId}");
         }
 
         private ModelResult CreateErrorModelResult(string modelId, string errorMessage)

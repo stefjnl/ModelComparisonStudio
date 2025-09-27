@@ -14,14 +14,17 @@ namespace ModelComparisonStudio.Controllers
     {
         private readonly AIService _aiService;
         private readonly ApiConfiguration _apiConfiguration;
+        private readonly ModelComparisonStudio.Infrastructure.Services.QueryPerformanceMonitor _performanceMonitor;
 
         public ComparisonController(
             AIService aiService,
             IOptions<ApiConfiguration> apiConfiguration,
+            ModelComparisonStudio.Infrastructure.Services.QueryPerformanceMonitor performanceMonitor,
             ILogger<ComparisonController> logger) : base(logger)
         {
             _aiService = aiService;
             _apiConfiguration = apiConfiguration.Value;
+            _performanceMonitor = performanceMonitor;
         }
 
         /// <summary>
@@ -100,14 +103,19 @@ namespace ModelComparisonStudio.Controllers
                     });
                 }
 
+                // Determine appropriate timeout based on prompt length and complexity
+                var timeout = DetermineOptimalTimeout(request.Prompt);
+                _logger.LogInformation("Using timeout of {TimeoutSeconds} seconds for comparison with {PromptLength} characters",
+                    timeout.TotalSeconds, request.Prompt.Length);
+
                 // Execute comparison based on mode
                 var modelResults = executionMode == ExecutionMode.Sequential
-                    ? await _aiService.ExecuteSequentialComparison(request.Prompt, request.SelectedModels, _apiConfiguration.Execution.DefaultTimeout, cancellationToken)
+                    ? await _aiService.ExecuteSequentialComparison(request.Prompt, request.SelectedModels, timeout, cancellationToken)
                     : await _aiService.ExecuteParallelComparison(
                         request.Prompt,
                         request.SelectedModels,
                         _apiConfiguration.Execution.MaxConcurrentRequests,
-                        _apiConfiguration.Execution.DefaultTimeout,
+                        timeout,
                         cancellationToken);
 
                 // Map service results to response model
@@ -128,6 +136,56 @@ namespace ModelComparisonStudio.Controllers
             {
                 _logger.LogError(ex, "Unexpected error during comparison execution");
 
+                return StatusCode(500, CreateErrorResponse(ex));
+            }
+        }
+
+        /// <summary>
+        /// Gets performance metrics for AI model operations
+        /// </summary>
+        /// <returns>Performance statistics for all tracked AI operations</returns>
+        [HttpGet("performance")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        public IActionResult GetPerformanceMetrics()
+        {
+            try
+            {
+                var stats = _performanceMonitor.GetPerformanceStats();
+                var aiStats = stats.Where(s => s.Key.StartsWith("AI-")).ToDictionary(s => s.Key, s => s.Value);
+
+                if (!aiStats.Any())
+                {
+                    return Ok(new
+                    {
+                        message = "No AI performance data available yet",
+                        timestamp = DateTime.UtcNow
+                    });
+                }
+
+                var summary = new
+                {
+                    totalOperations = aiStats.Sum(s => s.Value.ExecutionCount),
+                    averageExecutionTime = aiStats.Any() ? aiStats.Average(s => s.Value.AverageExecutionTimeMs) : 0,
+                    slowestModel = aiStats.OrderByDescending(s => s.Value.AverageExecutionTimeMs).FirstOrDefault().Key,
+                    fastestModel = aiStats.OrderBy(s => s.Value.AverageExecutionTimeMs).FirstOrDefault().Key,
+                    models = aiStats.ToDictionary(
+                        s => s.Key,
+                        s => new
+                        {
+                            averageTime = Math.Round(s.Value.AverageExecutionTimeMs, 2),
+                            minTime = s.Value.MinExecutionTimeMs,
+                            maxTime = s.Value.MaxExecutionTimeMs,
+                            executionCount = s.Value.ExecutionCount
+                        }
+                    ),
+                    timestamp = DateTime.UtcNow
+                };
+
+                return Ok(summary);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving performance metrics");
                 return StatusCode(500, CreateErrorResponse(ex));
             }
         }
@@ -163,6 +221,38 @@ namespace ModelComparisonStudio.Controllers
                 ErrorMessage = serviceResult.ErrorMessage,
                 Provider = GetProviderFromModelId(serviceResult.ModelId)
             };
+        }
+
+        /// <summary>
+        /// Determines the optimal timeout based on prompt characteristics
+        /// </summary>
+        /// <param name="prompt">The prompt text</param>
+        /// <returns>Appropriate timeout duration</returns>
+        private TimeSpan DetermineOptimalTimeout(string prompt)
+        {
+            var promptLength = prompt.Length;
+            var wordCount = prompt.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+
+            // Use extended timeout for long prompts or complex tasks
+            if (promptLength > 10000 || wordCount > 1500)
+            {
+                _logger.LogInformation("Using extended timeout for long prompt: {PromptLength} chars, {WordCount} words",
+                    promptLength, wordCount);
+                return _apiConfiguration.Execution.ExtendedTimeout;
+            }
+
+            // Use standard timeout for medium-length prompts
+            if (promptLength > 2000 || wordCount > 300)
+            {
+                _logger.LogInformation("Using standard timeout for medium prompt: {PromptLength} chars, {WordCount} words",
+                    promptLength, wordCount);
+                return _apiConfiguration.Execution.StandardTimeout;
+            }
+
+            // Use quick timeout for short prompts
+            _logger.LogInformation("Using quick timeout for short prompt: {PromptLength} chars, {WordCount} words",
+                promptLength, wordCount);
+            return _apiConfiguration.Execution.QuickTimeout;
         }
 
         /// <summary>

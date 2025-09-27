@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ModelComparisonStudio.Application.Services;
 using ModelComparisonStudio.Configuration;
+using ModelComparisonStudio.Controllers;
 using ModelComparisonStudio.Core.Interfaces;
 using ModelComparisonStudio.Infrastructure;
 using ModelComparisonStudio.Infrastructure.Repositories;
@@ -19,6 +20,7 @@ builder.Services.AddControllers(options =>
         _ => "The field is required.");
 })
 .AddApplicationPart(typeof(Program).Assembly) // Explicitly include the current assembly for controller discovery
+.AddApplicationPart(typeof(CodingAssignmentController).Assembly) // Include coding assignment controller
 .AddJsonOptions(options =>
 {
     // Configure JSON options for better error handling
@@ -76,6 +78,9 @@ builder.Services.AddScoped<TemplateStatisticsService>();
 
 // Register performance monitoring services
 builder.Services.AddSingleton<ModelComparisonStudio.Infrastructure.Services.QueryPerformanceMonitor>();
+
+// Register AIService with performance monitoring
+builder.Services.AddScoped<AIService>();
 
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -171,6 +176,13 @@ app.MapControllers();
 
 // Root endpoint to serve the frontend
 app.MapGet("/", () => Results.Redirect("/index.html"));
+
+// Add specific API route patterns to ensure they're not caught by fallback
+app.MapGet("/api/{**slug}", async context =>
+{
+    context.Response.StatusCode = 404;
+    await context.Response.WriteAsJsonAsync(new { error = "API endpoint not found" });
+});
 
 // Fallback to index.html for SPA routing - this should be LAST
 app.MapFallbackToFile("index.html");
