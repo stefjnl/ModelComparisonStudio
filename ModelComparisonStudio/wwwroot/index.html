@@ -45,6 +45,16 @@
 
                 <!-- Desktop Navigation Buttons -->
                 <div class="flex items-center gap-4">
+                    <a href="coding-assignment.html"
+                        class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                            </svg>
+                            Coding Studio
+                        </span>
+                    </a>
                     <button id="showRankingsBtn"
                         class="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
                         <span class="flex items-center">
@@ -73,6 +83,14 @@
                         </svg>
                         <span class="text-sm text-slate-300 font-medium">Toggle Sidebar</span>
                     </button>
+                    <button id="templateSidebarToggle"
+                        class="hidden lg:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-xl border border-slate-700/30 rounded-xl px-4 py-2 transition-all duration-300">
+                        <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <span class="text-sm text-slate-300 font-medium">Templates</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -80,150 +98,175 @@
 
     <!-- Main Layout Container -->
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8" id="mainGrid">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6" id="mainGrid">
 
-            <!-- Left Sidebar - Model Selection -->
-            <aside id="sidebar" class="lg:col-span-3 space-y-6 sidebar-expanded">
-                <div
-                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
-                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
-                        Model Selection
-                    </h2>
-
-                    <!-- Add Model Button -->
-                    <button id="addModelBtn"
-                        class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Add Model
-                        </span>
-                    </button>
-
-                    <!-- Model Input Form -->
-                    <div id="modelInputForm" class="hidden mt-4 space-y-3">
-                        <input type="text" id="modelIdInput" placeholder="provider/model-name"
-                            class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
-                        <div class="flex gap-2">
-                            <button id="addModelConfirm"
-                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
-                                Add
+            <!-- Compact Model Selection Bar -->
+            <div id="modelSelectionBar" class="lg:col-span-12 mb-6">
+                <div class="bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/20 p-4 shadow-modern-lg">
+                    <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+                        <!-- Model Selection Header -->
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-lg font-semibold text-white flex items-center">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                                Models
+                            </h2>
+                            <button id="toggleModelSelection"
+                                class="lg:hidden bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 p-2 rounded-lg transition-all duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                                </svg>
                             </button>
-                            <button id="cancelAddModel"
-                                class="flex-1 bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-sm">
-                                Cancel
+                        </div>
+
+                        <!-- Selected Models Display -->
+                        <div id="selectedModels" class="flex-1 flex flex-wrap items-center gap-2 min-h-[40px]">
+                            <div class="text-slate-400 text-sm">No models selected</div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="flex items-center gap-3">
+                            <button id="addModelBtn"
+                                class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md text-sm">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Add Model
+                                </span>
+                            </button>
+
+                            <!-- Expand/Collapse Button for Desktop -->
+                            <button id="expandModelSelection"
+                                class="hidden lg:flex bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 p-2 rounded-lg transition-all duration-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
                             </button>
                         </div>
                     </div>
 
-                    <!-- Available Models Display -->
-                    <div class="available-models-section space-y-4">
-                        <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
-                            <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                            Available Models
-                        </h3>
-
-                        <!-- OpenRouter Models Section -->
-                        <div
-                            class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
-                            <button
-                                class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200"
-                                onclick="app.toggleProvider('openrouter')">
-                                <div class="flex items-center">
-                                    <span class="w-3 h-3 bg-orange-500 rounded-full mr-3"></span>
-                                    <span class="font-semibold text-white">OpenRouter</span>
-                                    <span class="ml-2 text-slate-400 text-sm" id="openrouter-count">7 models</span>
-                                </div>
-                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
-                                    id="openrouter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </button>
-                            <div id="openrouter-models"
-                                class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-                                <div class="p-4 pt-0">
-                                    <div id="openrouterModels" class="available-models-grid overflow-y-auto max-h-96">
-                                        <div class="text-slate-400 text-sm">Loading OpenRouter models...</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- NanoGPT Models Section -->
-                        <div
-                            class="provider-section bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden">
-                            <button
-                                class="provider-header w-full flex items-center justify-between p-4 hover:bg-slate-700/30 transition-colors duration-200"
-                                onclick="app.toggleProvider('nanogpt')">
-                                <div class="flex items-center">
-                                    <span class="w-3 h-3 bg-purple-500 rounded-full mr-3"></span>
-                                    <span class="font-semibold text-white">NanoGPT</span>
-                                    <span class="ml-2 text-slate-400 text-sm" id="nanogpt-count">7 models</span>
-                                </div>
-                                <svg class="w-5 h-5 text-slate-400 transform transition-transform duration-200"
-                                    id="nanogpt-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 9l-7 7-7-7"></path>
-                                </svg>
-                            </button>
-                            <div id="nanogpt-models"
-                                class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
-                                <div class="p-4 pt-0">
-                                    <div id="nanogptModels" class="available-models-grid overflow-y-auto max-h-96">
-                                        <div class="text-slate-400 text-sm">Loading NanoGPT models...</div>
-                                    </div>
-                                </div>
+                    <!-- Model Input Form (Compact) -->
+                    <div id="modelInputForm" class="hidden mt-4 p-3 bg-slate-700/30 rounded-xl border border-slate-600/30">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="modelIdInput" placeholder="provider/model-name"
+                                class="flex-1 bg-slate-800/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-sm">
+                            <div class="flex gap-2">
+                                <button id="addModelConfirm"
+                                    class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-lg transition-all duration-300 text-sm">
+                                    Add
+                                </button>
+                                <button id="cancelAddModel"
+                                    class="bg-slate-600 hover:bg-slate-700 text-white font-medium py-2 px-3 rounded-lg transition-all duration-300 text-sm">
+                                    Cancel
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Selected Models -->
-                    <div id="selectedModels" class="mt-6 space-y-3">
-                        <div class="text-slate-400 text-sm">No models selected</div>
+                    <!-- Expandable Model Selection Panel -->
+                    <div id="modelSelectionPanel" class="hidden mt-4 space-y-4">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <!-- OpenRouter Models Section -->
+                            <div class="provider-section bg-slate-800/30 backdrop-blur-xl rounded-xl border border-slate-700/20 overflow-hidden">
+                                <button class="provider-header w-full flex items-center justify-between p-3 hover:bg-slate-700/20 transition-colors duration-200"
+                                    onclick="app.toggleProvider('openrouter')">
+                                    <div class="flex items-center">
+                                        <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                                        <span class="font-medium text-white text-sm">OpenRouter</span>
+                                        <span class="ml-2 text-slate-400 text-xs" id="openrouter-count">7 models</span>
+                                    </div>
+                                    <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200" id="openrouter-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="openrouter-models" class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                                    <div class="p-3 pt-0">
+                                        <div id="openrouterModels" class="available-models-grid overflow-y-auto max-h-64">
+                                            <div class="text-slate-400 text-xs">Loading OpenRouter models...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- NanoGPT Models Section -->
+                            <div class="provider-section bg-slate-800/30 backdrop-blur-xl rounded-xl border border-slate-700/20 overflow-hidden">
+                                <button class="provider-header w-full flex items-center justify-between p-3 hover:bg-slate-700/20 transition-colors duration-200"
+                                    onclick="app.toggleProvider('nanogpt')">
+                                    <div class="flex items-center">
+                                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                                        <span class="font-medium text-white text-sm">NanoGPT</span>
+                                        <span class="ml-2 text-slate-400 text-xs" id="nanogpt-count">7 models</span>
+                                    </div>
+                                    <svg class="w-4 h-4 text-slate-400 transform transition-transform duration-200" id="nanogpt-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="nanogpt-models" class="provider-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                                    <div class="p-3 pt-0">
+                                        <div id="nanogptModels" class="available-models-grid overflow-y-auto max-h-64">
+                                            <div class="text-slate-400 text-xs">Loading NanoGPT models...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </aside>
+            </div>
 
-            <!-- Main Content Area -->
-            <div id="mainContent" class="lg:col-span-5 space-y-6 main-content-expanded">
-                
-                <!-- Prompt Input Section -->
-                    <div id="promptSection"
-                        class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
-                        <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
-                        Test Prompt
-                    </h2>
+            <!-- Main Content Area - Expanded to 70-80% of screen width -->
+            <div id="mainContent" class="lg:col-span-8 space-y-8 main-content-expanded">
+
+                <!-- Enhanced Prompt Input Section -->
+                <div id="promptSection" class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-8 shadow-modern-xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold text-white flex items-center">
+                            <span class="w-3 h-3 bg-pink-500 rounded-full mr-4"></span>
+                            Test Prompt
+                        </h2>
+                        <div class="text-sm text-slate-400 font-mono">
+                            <span id="promptCharCount">0</span> characters
+                        </div>
+                    </div>
 
                     <textarea id="promptInput"
-                        placeholder="Enter your test prompt here... Describe what you want to test or ask the models..."
-                        class="w-full h-48 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"></textarea>
+                        placeholder="Enter your test prompt here...&#10;&#10;Describe what you want to test or ask the models. Be specific about the task, context, and expected output format."
+                        class="w-full h-56 bg-slate-700/50 border border-slate-600/50 rounded-xl p-6 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 text-lg leading-relaxed font-light"></textarea>
 
-                    <button id="runComparisonBtn" disabled
-                        class="mt-4 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                        <span class="flex items-center justify-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                            Run Comparison
-                        </span>
-                    </button>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6">
+                        <div class="text-sm text-slate-400">
+                            <span id="selectedModelsCount">0</span> models selected for comparison
+                        </div>
+
+                        <button id="runComparisonBtn" disabled
+                            class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105 shadow-modern-lg hover:shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100 text-lg">
+                            <span class="flex items-center justify-center">
+                                <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Run Comparison
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Comparison Results -->
+                <!-- Enhanced Comparison Results -->
                 <div id="resultsSection" class="hidden">
-                    <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
-                        <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                        Comparison Results
-                    </h2>
+                    <div class="flex items-center justify-between mb-8">
+                        <h2 class="text-2xl font-semibold text-white flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full mr-4"></span>
+                            Comparison Results
+                        </h2>
+                        <div class="flex items-center gap-4 text-sm text-slate-400">
+                            <span id="resultsCount">0 models</span>
+                            <button id="clearResults" class="text-slate-500 hover:text-slate-300 transition-colors duration-200">
+                                Clear Results
+                            </button>
+                        </div>
+                    </div>
 
-                    <!-- Vertical Stack Layout for Model Comparisons -->
-                    <div id="comparisonResults" class="space-y-8">
+                    <!-- Enhanced Vertical Stack Layout for Model Comparisons -->
+                    <div id="comparisonResults" class="space-y-10">
                         <!-- Model panels will be dynamically inserted here -->
                     </div>
                 </div>
@@ -261,33 +304,31 @@
                 </div>
             </div>
 
-            <!-- Right Sidebar - Prompt Templates -->
+            <!-- Compact Right Sidebar - Prompt Templates (20-30% width) -->
             <aside id="templateSidebar" class="lg:col-span-4 space-y-6 template-sidebar-expanded">
-                <div
-                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
-                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                        Prompt Templates
-                    </h2>
+                <div class="bg-slate-800/30 backdrop-blur-xl rounded-2xl border border-slate-700/20 p-6 shadow-modern-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            Templates
+                        </h2>
+                        <button id="toggleTemplates"
+                            class="lg:hidden bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 p-2 rounded-lg transition-all duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                        </button>
+                    </div>
 
-                    <!-- Template Library Controls -->
+                    <!-- Compact Template Library Controls -->
                     <div id="templateLibrary" class="space-y-4">
-                        <div class="template-controls flex flex-wrap gap-3 mb-4">
-                            <div class="flex-1 min-w-[200px]">
-                                <input type="text" id="templateSearch" placeholder="Search templates..."
-                                       class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
-                            </div>
-                            <div class="flex gap-2">
-                                <button id="createTemplateBtn"
-                                    class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
-                                    Create New
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Category Filters -->
-                        <div id="templateCategoryFilters" class="category-filters">
-                            <!-- Category filters will be populated dynamically -->
+                        <div class="flex gap-2">
+                            <input type="text" id="templateSearch" placeholder="Search templates..."
+                                class="flex-1 bg-slate-700/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm">
+                            <button id="createTemplateBtn"
+                                class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-3 rounded-lg transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md text-sm">
+                                New
+                            </button>
                         </div>
 
                         <!-- Template Library Content -->

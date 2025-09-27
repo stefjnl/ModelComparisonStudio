@@ -219,8 +219,8 @@ const ModelComparisonApp = (() => {
         // Navigation
         document.getElementById('showModelDetailsBtn')?.addEventListener('click', () => this.showModelDetails());
 
-        // Sidebar toggle functionality
-        this.initializeSidebarToggle();
+        // Enhanced model selection bar controls
+        this.initializeModelSelectionBar();
         this.initializeTemplateSidebarToggle();
 
         // Template system controls
@@ -230,7 +230,115 @@ const ModelComparisonApp = (() => {
         this.setupRankingControls();
     }
 
-    // Initialize sidebar toggle functionality
+    // Initialize enhanced model selection bar functionality
+    initializeModelSelectionBar() {
+        // Toggle model selection panel expansion
+        document.getElementById('expandModelSelection')?.addEventListener('click', () => {
+            this.toggleModelSelectionPanel();
+        });
+
+        // Mobile toggle for model selection
+        document.getElementById('toggleModelSelection')?.addEventListener('click', () => {
+            this.toggleMobileModelSelection();
+        });
+
+        // Character count for prompt input
+        document.getElementById('promptInput').addEventListener('input', (e) => {
+            this.updatePromptCharCount();
+            this.updateRunButtonState();
+        });
+
+        // Clear results button
+        document.getElementById('clearResults')?.addEventListener('click', () => {
+            this.clearResults();
+        });
+
+        // Initialize character count
+        this.updatePromptCharCount();
+        this.updateSelectedModelsCount();
+    }
+
+    // Toggle model selection panel expansion
+    toggleModelSelectionPanel() {
+        const panel = document.getElementById('modelSelectionPanel');
+        const button = document.getElementById('expandModelSelection');
+        const arrow = button?.querySelector('svg');
+
+        if (panel.classList.contains('hidden')) {
+            panel.classList.remove('hidden');
+            if (arrow) {
+                arrow.style.transform = 'rotate(180deg)';
+            }
+            button.title = 'Collapse model selection';
+        } else {
+            panel.classList.add('hidden');
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+            button.title = 'Expand model selection';
+        }
+    }
+
+    // Toggle mobile model selection overlay
+    toggleMobileModelSelection() {
+        const modelBar = document.getElementById('modelSelectionBar');
+        const isExpanded = modelBar.classList.contains('mobile-expanded');
+
+        if (isExpanded) {
+            modelBar.classList.remove('mobile-expanded');
+        } else {
+            modelBar.classList.add('mobile-expanded');
+            // Scroll to model bar when expanded on mobile
+            modelBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // Update prompt character count
+    updatePromptCharCount() {
+        const promptInput = document.getElementById('promptInput');
+        const charCount = document.getElementById('promptCharCount');
+        const length = promptInput.value.length;
+
+        if (charCount) {
+            charCount.textContent = length.toLocaleString();
+
+            // Change color based on length
+            if (length > 40000) {
+                charCount.className = 'text-red-400';
+            } else if (length > 30000) {
+                charCount.className = 'text-yellow-400';
+            } else {
+                charCount.className = 'text-slate-400';
+            }
+        }
+    }
+
+    // Update selected models count
+    updateSelectedModelsCount() {
+        const countElement = document.getElementById('selectedModelsCount');
+        if (countElement) {
+            countElement.textContent = this.selectedModels.length;
+        }
+    }
+
+    // Clear comparison results
+    clearResults() {
+        const resultsSection = document.getElementById('resultsSection');
+        const comparisonResults = document.getElementById('comparisonResults');
+
+        if (resultsSection) {
+            resultsSection.classList.add('hidden');
+        }
+
+        if (comparisonResults) {
+            comparisonResults.innerHTML = '';
+        }
+
+        // Clear current comparison data
+        this.currentComparison = null;
+    }
+
+    // Initialize sidebar toggle functionality (keeping for backward compatibility)
     initializeSidebarToggle() {
         const desktopToggle = document.getElementById('desktopSidebarToggle');
         const mobileToggle = document.getElementById('sidebarToggle');
@@ -284,6 +392,7 @@ const ModelComparisonApp = (() => {
     initializeTemplateSidebarToggle() {
         const templateSidebar = document.getElementById('templateSidebar');
         const mainContent = document.getElementById('mainContent');
+        const templateToggle = document.getElementById('templateSidebarToggle');
 
         // Load saved state from localStorage
         const isTemplateCollapsed = localStorage.getItem('templateSidebarCollapsed') === 'true';
@@ -292,36 +401,24 @@ const ModelComparisonApp = (() => {
             this.collapseTemplateSidebar();
         }
 
-        // Create a toggle button for the template sidebar
-        const templateToggle = document.createElement('button');
-        templateToggle.id = 'templateSidebarToggle';
-        templateToggle.className = 'hidden lg:flex items-center gap-2 bg-slate-800/50 hover:bg-slate-700/50 backdrop-blur-xl border border-slate-700/30 rounded-xl px-4 py-2 transition-all duration-300';
-        templateToggle.innerHTML = `
-            <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-            <span class="text-sm text-slate-300 font-medium">Templates</span>
-        `;
-
-        // Add the button to the header or another appropriate location
-        const header = document.querySelector('header');
-        if (header) {
-            header.querySelector('div').appendChild(templateToggle);
-        }
-
         // Add event listener to the toggle button
-        templateToggle.addEventListener('click', () => {
-            this.toggleTemplateSidebar();
-        });
+        if (templateToggle) {
+            templateToggle.addEventListener('click', () => {
+                this.toggleTemplateSidebar();
+            });
+        }
 
         // Handle window resize for template sidebar
         window.addEventListener('resize', () => {
             if (window.innerWidth > 1023) {
                 // Desktop view - ensure proper grid layout
-                templateSidebar.classList.remove('template-sidebar-collapsed');
-                templateSidebar.classList.add('template-sidebar-expanded');
-                mainContent.classList.remove('main-content-full-width-two-sidebars');
-                mainContent.classList.add('main-content-expanded');
+                if (templateSidebar.classList.contains('template-sidebar-collapsed')) {
+                    mainContent.classList.remove('main-content-expanded');
+                    mainContent.classList.add('main-content-full-width');
+                } else {
+                    mainContent.classList.remove('main-content-full-width');
+                    mainContent.classList.add('main-content-expanded');
+                }
             }
         });
     }
@@ -358,8 +455,9 @@ const ModelComparisonApp = (() => {
         templateSidebar.classList.remove('template-sidebar-expanded');
         templateSidebar.classList.add('template-sidebar-collapsed');
 
+        // When template sidebar is hidden, main content gets full width to match modelSelectionBar
         mainContent.classList.remove('main-content-expanded');
-        mainContent.classList.add('main-content-full-width-left-sidebar');
+        mainContent.classList.add('main-content-full-width');
 
         // Save state
         localStorage.setItem('templateSidebarCollapsed', 'true');
@@ -376,7 +474,8 @@ const ModelComparisonApp = (() => {
         templateSidebar.classList.remove('template-sidebar-collapsed');
         templateSidebar.classList.add('template-sidebar-expanded');
 
-        mainContent.classList.remove('main-content-full-width-left-sidebar');
+        // When template sidebar is visible, main content returns to expanded layout (8/12 columns)
+        mainContent.classList.remove('main-content-full-width');
         mainContent.classList.add('main-content-expanded');
 
         // Save state
@@ -453,8 +552,10 @@ const ModelComparisonApp = (() => {
         if (templateToggle) {
             const span = templateToggle.querySelector('span');
             if (span) {
-                span.textContent = `Templates (${text})`;
+                span.textContent = `Templates`;
             }
+            // Update title attribute for better UX
+            templateToggle.title = `Click to ${text.toLowerCase()} templates sidebar`;
         }
     }
 
@@ -847,26 +948,44 @@ const ModelComparisonApp = (() => {
     updateUI() {
         this.updateSelectedModelsDisplay();
         this.updateRunButtonState();
+        this.updateSelectedModelsCount();
+        this.updateResultsCount();
     }
 
     updateSelectedModelsDisplay() {
         const container = document.getElementById('selectedModels');
 
         if (this.selectedModels.length === 0) {
-            container.innerHTML = '<div class="text-slate-400 text-sm">No models selected</div>';
+            container.innerHTML = '<div class="text-slate-400 text-sm italic">No models selected</div>';
             return;
         }
 
         container.innerHTML = '';
-        this.selectedModels.forEach(modelId => {
+        this.selectedModels.forEach((modelId, index) => {
             const pill = document.createElement('div');
-            pill.className = 'model-pill bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2';
+            pill.className = 'model-pill bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-lg';
             pill.innerHTML = `
-                ${modelId}
-                <span class="remove-btn cursor-pointer hover:text-red-300 transition-colors duration-200" onclick="app.removeModel('${modelId}')">×</span>
+                <span class="font-medium">${modelId}</span>
+                <span class="remove-btn w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-xs hover:bg-red-500 transition-all duration-200 cursor-pointer" onclick="app.removeModel('${modelId}')">
+                    ×
+                </span>
             `;
+
+            // Add animation delay for each pill
+            pill.style.animationDelay = `${index * 0.1}s`;
             container.appendChild(pill);
         });
+    }
+
+    // Update results count display
+    updateResultsCount() {
+        const resultsCount = document.getElementById('resultsCount');
+        const comparisonResults = document.getElementById('comparisonResults');
+
+        if (resultsCount && comparisonResults) {
+            const count = comparisonResults.children.length;
+            resultsCount.textContent = `${count} model${count !== 1 ? 's' : ''}`;
+        }
     }
 
     // Enhanced model suggestions
@@ -1024,11 +1143,14 @@ const ModelComparisonApp = (() => {
             resultsContainer.appendChild(modelPanel);
         });
 
-        // Re-enable UI
-        this.setComparisonInProgress(false);
+         // Re-enable UI
+         this.setComparisonInProgress(false);
 
-        // Show success message
-        this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
+         // Update results count
+         this.updateResultsCount();
+
+         // Show success message
+         this.displaySuccessMessage(`Comparison completed! Processed ${result.results.length} models.`);
     }
 
     // Generate a unique ID for the prompt

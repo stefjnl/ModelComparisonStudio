@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Assignment Studio</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+    <link href="css/components/template-cards.css" rel="stylesheet">
+</head>
+
+<body class="bg-slate-900 text-white font-inter overflow-x-hidden">
+
+    <!-- Animated Gradient Background -->
+    <div class="fixed inset-0 -z-10">
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 animate-gradient-x">
+        </div>
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-3xl"></div>
+    </div>
+
+    <!-- Header with Glassmorphism -->
+    <header class="relative bg-slate-800/30 backdrop-blur-xl border-b border-slate-700/30 shadow-modern-lg">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="group">
+                    <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent
+                             transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+                        Coding Assignment Studio
+                    </h1>
+                    <p class="text-slate-300 text-sm sm:text-base mt-1 font-light">
+                        Single-model coding tasks with templates
+                    </p>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="flex items-center gap-4">
+                    <a href="index.html"
+                        class="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to Comparison
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8" id="mainGrid">
+
+            <!-- Left Sidebar - Model Selection -->
+            <aside id="sidebar" class="lg:col-span-4 space-y-6 sidebar-expanded">
+                <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                        <span class="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
+                        Model Selection
+                    </h2>
+
+                    <!-- Model Dropdown -->
+                    <div class="space-y-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Select AI Model
+                        </label>
+                        <select id="modelSelect"
+                            class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <div id="selectedModelInfo" class="text-sm text-slate-400 hidden">
+                            <div class="bg-slate-800/50 rounded-xl p-3">
+                                <div class="font-medium text-white" id="modelName"></div>
+                                <div class="text-xs mt-1" id="modelDescription"></div>
+                                <div class="text-xs text-purple-400 mt-1" id="modelContextWindow"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Template Selection -->
+                    <div class="mt-6 space-y-4">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Assignment Template (Optional)
+                        </label>
+                        <select id="templateSelect"
+                            class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                            <option value="">Select a template...</option>
+                        </select>
+                        <div id="templatePreview" class="hidden">
+                            <div class="bg-slate-800/50 rounded-xl p-3">
+                                <div class="text-xs text-slate-400 mb-2">Template Preview:</div>
+                                <div class="text-sm text-slate-300" id="templateDescription"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options -->
+                    <div class="mt-6 space-y-4">
+                        <h3 class="text-lg font-semibold text-white mb-3 flex items-center">
+                            <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
+                            Advanced Options
+                        </h3>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">
+                                    Timeout Setting
+                                </label>
+                                <select id="timeoutSelect"
+                                    class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200">
+                                    <option value="auto">Auto (based on complexity)</option>
+                                    <option value="quick">Quick (2 minutes)</option>
+                                    <option value="standard">Standard (5 minutes)</option>
+                                    <option value="extended">Extended (15 minutes)</option>
+                                </select>
+                            </div>
+
+                            <div class="flex items-center">
+                                <input type="checkbox" id="enableProgressTracking" checked
+                                    class="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-2">
+                                <label for="enableProgressTracking" class="ml-2 text-sm text-slate-300">
+                                    Enable progress tracking
+                                </label>
+                            </div>
+
+                            <div class="flex items-center">
+                                <input type="checkbox" id="enableStreaming" checked
+                                    class="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500 focus:ring-2">
+                                <label for="enableStreaming" class="ml-2 text-sm text-slate-300">
+                                    Enable streaming responses
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <div id="mainContent" class="lg:col-span-8 space-y-6 main-content-expanded">
+
+                <!-- Assignment Input Section -->
+                <div id="assignmentSection"
+                    class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                    <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                        <span class="w-2 h-2 bg-pink-500 rounded-full mr-3"></span>
+                        Coding Assignment
+                    </h2>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Assignment Title
+                            </label>
+                            <input type="text" id="assignmentTitle"
+                                placeholder="Brief title for your coding assignment..."
+                                class="w-full bg-slate-700/50 border border-slate-600/50 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Assignment Description
+                            </label>
+                            <textarea id="assignmentInput"
+                                placeholder="Describe your coding assignment in detail. Include requirements, specifications, constraints, and any specific technologies or frameworks to use..."
+                                class="w-full h-64 bg-slate-700/50 border border-slate-600/50 rounded-xl p-4 text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all duration-200 font-light leading-relaxed"
+                                maxlength="50000"></textarea>
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="text-sm text-slate-400">
+                                    <span id="charCount">0</span>/50,000 characters
+                                </div>
+                                <div class="text-sm text-slate-400">
+                                    <span id="wordCount">0</span> words
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button id="executeAssignmentBtn"
+                                class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md hover:shadow-modern-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                                <span class="flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                    </svg>
+                                    Execute Assignment
+                                </span>
+                            </button>
+
+                            <button id="saveAsTemplateBtn"
+                                class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    Save as Template
+                                </span>
+                            </button>
+
+                            <button id="loadTemplateBtn"
+                                class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                    </svg>
+                                    Load Template
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="progressSection" class="hidden">
+                    <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                        <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
+                            Assignment Progress
+                        </h2>
+
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-slate-300">Status:</span>
+                                <span id="progressStatus" class="text-sm text-blue-400">Initializing...</span>
+                            </div>
+
+                            <div class="w-full bg-slate-700 rounded-full h-3">
+                                <div id="progressBar" class="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+
+                            <div class="flex items-center justify-between text-sm text-slate-400">
+                                <span id="progressText">Starting assignment...</span>
+                                <span id="timeRemaining">Calculating...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="hidden">
+                    <div class="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 shadow-modern-xl">
+                        <h2 class="text-xl font-semibold text-white mb-4 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
+                            Assignment Results
+                        </h2>
+
+                        <!-- Assignment Info -->
+                        <div class="bg-slate-700/30 rounded-xl p-4 mb-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-slate-400">Model:</span>
+                                    <span id="resultModel" class="text-white ml-2"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Execution Time:</span>
+                                    <span id="resultTime" class="text-white ml-2"></span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Status:</span>
+                                    <span id="resultStatus" class="text-green-400 ml-2">Completed</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Tokens Used:</span>
+                                    <span id="resultTokens" class="text-white ml-2"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Results Content -->
+                        <div id="resultsContent" class="space-y-4">
+                            <!-- Results will be displayed here -->
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-wrap gap-3 mt-6 pt-4 border-t border-slate-700/30">
+                            <button id="exportResultsBtn"
+                                class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Export Results
+                                </span>
+                            </button>
+
+                            <button id="saveAssignmentBtn"
+                                class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    Save Assignment
+                                </span>
+                            </button>
+
+                            <button id="newAssignmentBtn"
+                                class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2 px-4 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5 shadow-modern-md">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    New Assignment
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modern CSS Custom Properties -->
+    <style>
+        :root {
+            --color-primary: #8b5cf6;
+            --color-secondary: #ec4899;
+            --color-accent: #06b6d4;
+            --color-slate-50: #f8fafc;
+            --color-slate-100: #f1f5f9;
+            --color-slate-200: #e2e8f0;
+            --color-slate-300: #cbd5e1;
+            --color-slate-400: #94a3b8;
+            --color-slate-500: #64748b;
+            --color-slate-600: #475569;
+            --color-slate-700: #334155;
+            --color-slate-800: #1e293b;
+            --color-slate-900: #0f172a;
+            --shadow-modern-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-modern-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-modern-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-modern-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --shadow-modern-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        .font-inter {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .shadow-modern-sm {
+            box-shadow: var(--shadow-modern-sm);
+        }
+
+        .shadow-modern-md {
+            box-shadow: var(--shadow-modern-md);
+        }
+
+        .shadow-modern-lg {
+            box-shadow: var(--shadow-modern-lg);
+        }
+
+        .shadow-modern-xl {
+            box-shadow: var(--shadow-modern-xl);
+        }
+
+        .shadow-modern-2xl {
+            box-shadow: var(--shadow-modern-2xl);
+        }
+
+        @keyframes gradient-x {
+            0%, 100% {
+                background-size: 200% 200%;
+                background-position: left center;
+            }
+            50% {
+                background-size: 200% 200%;
+                background-position: right center;
+            }
+        }
+
+        .animate-gradient-x {
+            animation: gradient-x 15s ease infinite;
+        }
+
+        .backdrop-blur-xl {
+            backdrop-filter: blur(24px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.7);
+        }
+
+        /* Code syntax highlighting styles */
+        .code-block {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .code-block code {
+            color: #e2e8f0;
+        }
+
+        .hljs-keyword { color: #c792ea; }
+        .hljs-string { color: #c3e88d; }
+        .hljs-comment { color: #546e7a; font-style: italic; }
+        .hljs-function { color: #82aaff; }
+        .hljs-variable { color: #eeffff; }
+        .hljs-number { color: #f78c6c; }
+    </style>
+
+    <script type="module" src="js/modules/coding-assignment.js"></script>
+</body>
+
+</html>

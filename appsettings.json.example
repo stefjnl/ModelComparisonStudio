@@ -31,5 +31,17 @@
       "openai/gpt-4o-mini",
       "google/gemini-2.0-flash-exp"
     ]
+  },
+  "Execution": {
+    "MaxConcurrentRequests": 2,
+    "EnableParallelExecution": true,
+    "QuickTimeout": "00:02:00",
+    "StandardTimeout": "00:05:00",
+    "ExtendedTimeout": "00:15:00",
+    "DefaultTimeout": "00:10:00",
+    "RetryAttempts": 3,
+    "RetryDelay": "00:00:05",
+    "EnablePerformanceMonitoring": true,
+    "HealthCheckInterval": "00:01:00"
   }
 }
