@@ -16,7 +16,10 @@ public class EvaluationId
     /// <summary>
     /// Private constructor for Entity Framework or other ORMs.
     /// </summary>
-    private EvaluationId() { }
+    private EvaluationId()
+    {
+        Value = null!;
+    }
 
     /// <summary>
     /// Private constructor with value.

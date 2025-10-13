@@ -331,7 +331,7 @@ public class SqliteEvaluationRepository : IEvaluationRepository
             var averageRating = await _context.Evaluations
                 .AsNoTracking()
                 .Where(e => EF.Functions.Like(e.ModelId, modelId) && e.Rating.HasValue)
-                .Select(e => e.Rating.Value)
+                .Select(e => e.Rating.GetValueOrDefault())
                 .AverageAsync(cancellationToken)
                 .ConfigureAwait(false);
 

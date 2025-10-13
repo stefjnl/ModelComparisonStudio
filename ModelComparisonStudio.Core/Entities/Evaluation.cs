@@ -12,7 +12,7 @@ public class Evaluation
     /// Unique identifier for this evaluation.
     /// </summary>
     [Required]
-    public EvaluationId Id { get; private set; }
+    public EvaluationId Id { get; private set; } = null!;
 
     /// <summary>
     /// The prompt ID that was used for this comparison.
@@ -42,7 +42,7 @@ public class Evaluation
     /// The user's comment about the model response.
     /// </summary>
     [MaxLength(500)]
-    public CommentText Comment { get; private set; }
+    public CommentText Comment { get; private set; } = null!;
 
     /// <summary>
     /// The response time in milliseconds from the model.

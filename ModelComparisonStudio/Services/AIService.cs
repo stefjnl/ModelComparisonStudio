@@ -228,7 +228,7 @@ namespace ModelComparisonStudio.Services
                         _logger.LogError("Response Time: {ResponseTime}ms", apiResponseTime);
                         _logger.LogError("Error Content Length: {ContentLength} characters", errorContentLength);
                         _logger.LogError("Error Content (first 1000 chars): {ErrorContentPreview}",
-                            errorContentLength > 1000 ? errorContent.Substring(0, 1000) + "..." : errorContent);
+                            errorContentLength > 1000 ? errorContent?.Substring(0, 1000) + "..." : errorContent);
                         _logger.LogError("Request URL: {Url}", $"{baseUrl}/chat/completions");
                         _logger.LogError("=== End Error Details ===");
 
@@ -238,7 +238,7 @@ namespace ModelComparisonStudio.Services
                             Response = $"Error: {response.StatusCode} - {response.ReasonPhrase}",
                             ResponseTimeMs = apiResponseTime,
                             Status = ModelResultStatus.Error.ToString(),
-                            ErrorMessage = errorContent
+                            ErrorMessage = errorContent ?? string.Empty
                         };
                     }
 
@@ -278,7 +278,7 @@ namespace ModelComparisonStudio.Services
                         // Simplified error snippet logging
                         if (responseLength > 0)
                         {
-                            var errorPosition = (int)jsonEx.BytePositionInLine;
+                            var errorPosition = (int)(jsonEx.BytePositionInLine ?? 0);
                             var startPos = Math.Max(0, Math.Min(responseLength - 1, errorPosition - 25));
                             var length = Math.Min(50, responseLength - startPos);
                             var errorSnippet = responseJson.Substring(startPos, length);

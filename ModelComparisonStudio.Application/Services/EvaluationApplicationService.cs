@@ -402,7 +402,7 @@ public class EvaluationApplicationService
 
                 var evaluationsWithTokens = evaluations.Where(e => e.TokenCount.HasValue && e.TokenCount.Value > 0);
                 var averageTokens = evaluationsWithTokens.Any()
-                    ? evaluationsWithTokens.Average(e => e.TokenCount.Value)
+                    ? evaluationsWithTokens.Average(e => e.TokenCount.GetValueOrDefault())
                     : 0;
 
                 // Calculate comment rate
@@ -419,7 +419,7 @@ public class EvaluationApplicationService
                 var ratingDistribution = new int[10];
                 foreach (var evaluation in evaluations.Where(e => e.Rating.HasValue))
                 {
-                    var rating = evaluation.Rating.Value;
+                    var rating = evaluation.Rating.GetValueOrDefault();
                     if (rating >= 1 && rating <= 10)
                     {
                         ratingDistribution[rating - 1]++;
@@ -509,7 +509,7 @@ public class EvaluationApplicationService
 
                 var evaluationsWithTokens = evaluations.Where(e => e.TokenCount.HasValue && e.TokenCount.Value > 0);
                 var averageTokens = evaluationsWithTokens.Any()
-                    ? evaluationsWithTokens.Average(e => e.TokenCount.Value)
+                    ? evaluationsWithTokens.Average(e => e.TokenCount.GetValueOrDefault())
                     : 0;
 
                 // Calculate comment rate
@@ -526,7 +526,7 @@ public class EvaluationApplicationService
                 var ratingDistribution = new int[10];
                 foreach (var evaluation in evaluations.Where(e => e.Rating.HasValue))
                 {
-                    var rating = evaluation.Rating.Value;
+                    var rating = evaluation.Rating.GetValueOrDefault();
                     if (rating >= 1 && rating <= 10)
                     {
                         ratingDistribution[rating - 1]++;

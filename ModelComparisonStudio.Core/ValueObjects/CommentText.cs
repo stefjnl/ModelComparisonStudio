@@ -22,7 +22,10 @@ public class CommentText
     /// <summary>
     /// Private constructor for Entity Framework or other ORMs.
     /// </summary>
-    private CommentText() { }
+    private CommentText()
+    {
+        Value = null!;
+    }
 
     /// <summary>
     /// Private constructor with value.

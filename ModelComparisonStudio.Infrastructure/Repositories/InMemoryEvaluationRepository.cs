@@ -176,7 +176,7 @@ public class InMemoryEvaluationRepository : IEvaluationRepository
 
         var ratings = _evaluations.Values
             .Where(e => e.ModelId.Equals(modelId, StringComparison.OrdinalIgnoreCase) && e.Rating.HasValue)
-            .Select(e => e.Rating.Value)
+            .Select(e => e.Rating.GetValueOrDefault())
             .ToList();
 
         if (!ratings.Any())

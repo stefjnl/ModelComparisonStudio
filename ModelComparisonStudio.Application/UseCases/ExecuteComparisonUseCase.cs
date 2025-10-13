@@ -59,7 +59,7 @@ public class ExecuteComparisonUseCase
 
             // Convert domain response to DTO
             var responseDto = ComparisonResponseDto.FromDomainComparison(
-                await ConvertDomainResponseToComparison(domainResponse));
+                ConvertDomainResponseToComparison(domainResponse));
 
             _logger.LogInformation("Comparison execution completed successfully for {ModelCount} models",
                 requestDto.SelectedModels.Count);
@@ -79,7 +79,7 @@ public class ExecuteComparisonUseCase
     /// </summary>
     /// <param name="domainResponse">The domain response.</param>
     /// <returns>A comparison entity.</returns>
-    private async Task<Core.Entities.Comparison> ConvertDomainResponseToComparison(
+    private Core.Entities.Comparison ConvertDomainResponseToComparison(
         Core.Interfaces.ComparisonResponse domainResponse)
     {
         var comparison = Core.Entities.Comparison.Create(domainResponse.Prompt.Content);
