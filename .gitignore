@@ -396,7 +396,6 @@ secrets.json
 appsettings.*.json.user
 appsettings.local.json
 appsettings.*.local.json
-appsettings.json
 app.Development.json
 
 
@@ -443,8 +442,7 @@ jspm_packages/
 .hotReload/
 
 # ASP.NET Core - sensitive configuration files
-appsettings.json
-appsettings.*.json
+appsettings.Development.json
 appsettings.*.json.user
 !appsettings.json.example
 appsettings.local.json

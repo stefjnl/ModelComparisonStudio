@@ -22,7 +22,7 @@ A modern web application for comparing AI language models side-by-side. Supports
    ```json
    "NanoGPT": {
      "ApiKey": "your-actual-nanogpt-api-key",
-     "BaseUrl": "https://api.nano-gpt.com",
+     "BaseUrl": "https:/nano-gpt.com",
      // ... rest of configuration
    },
    "OpenRouter": {
